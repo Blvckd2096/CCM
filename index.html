@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="Cưới chúng mình — quản lý khách mời, tiền mừng và mừng lại cho nhà trai và nhà gái, lưu offline trên iPhone.">
+<title>Cưới chúng mình</title>
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cưới chúng mình">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-side="trai">
+<header class="topbar">
+  <div>
+    <h1>Cưới chúng mình</h1>
+    <p id="subtitle">Quản lý khách mời • Tiền mừng • Mừng lại</p>
+  </div>
+  <button class="icon-btn" id="btnSettings" type="button" aria-label="Mở cài đặt">Cài đặt</button>
+</header>
+
+<main>
+  <!-- Tab 2 bên, dữ liệu riêng hoàn toàn -->
+  <div class="tabs" role="tablist" aria-label="Chọn bên gia đình">
+    <button class="tab active" type="button" data-tab="trai" role="tab" aria-selected="true">NHÀ TRAI<small id="tabTraiSub">0 khách</small></button>
+    <button class="tab" type="button" data-tab="gai" role="tab" aria-selected="false">NHÀ GÁI<small id="tabGaiSub">0 khách</small></button>
+  </div>
+
+  <!-- Thống kê -->
+  <section class="card stats" aria-label="Thống kê">
+    <div class="stats-top">
+      <div>
+        <div class="label" id="statSideLabel">Nhà trai</div>
+        <div class="big" id="statTotalMoney">0 VNĐ</div>
+        <div class="label" id="statTotalMoneyCompact">Tổng tiền mừng đã nhập</div>
+      </div>
+      <div style="text-align:right">
+        <div class="label">Tổng khách</div>
+        <div class="big" id="statTotalGuests">0</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat"><b id="statInvited">0</b><span>Đã mời</span></div>
+      <div class="stat"><b id="statNotInvited">0</b><span>Chưa mời</span></div>
+      <div class="stat"><b id="statWithMoney">0</b><span>Có tiền mừng</span></div>
+      <div class="stat"><b id="statWaiting">0</b><span>Chờ mừng lại</span></div>
+      <div class="stat"><b id="statReturned">0</b><span>Đã mừng lại</span></div>
+      <div class="stat"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
+    </div>
+    <div class="stats-note">
+      <button type="button" id="btnToggleCombined">Xem tổng hợp 2 bên ▾</button>
+      <div class="combined" id="combinedBox" hidden>
+        <div><span>Tổng tiền mừng nhà trai</span><b id="combinedTrai">0 VNĐ</b></div>
+        <div><span>Tổng tiền mừng nhà gái</span><b id="combinedGai">0 VNĐ</b></div>
+        <div><span>Tổng tiền mừng cả hai bên</span><b id="combinedAll">0 VNĐ</b></div>
+        <div class="muted small" style="margin-top:4px">Hai danh sách độc lập, không cộng trùng khách.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Công cụ -->
+  <section class="card toolbar" aria-label="Tìm kiếm và lọc">
+    <input type="search" id="searchInput" placeholder="Tìm tên khách mời…" autocomplete="off" enterkeyhint="search">
+    <div class="filter-row">
+      <select id="filterGroup" aria-label="Lọc theo nhóm"><option value="">Tất cả các nhóm</option></select>
+      <select id="filterInvited" aria-label="Lọc theo trạng thái mời">
+        <option value="">Mời: Tất cả</option><option value="da">Đã mời</option><option value="chua">Chưa mời</option>
+      </select>
+      <select id="filterReturned" aria-label="Lọc theo trạng thái mừng lại">
+        <option value="">Mừng lại: Tất cả</option><option value="cho">Chờ mừng lại</option><option value="da">Đã mừng lại</option>
+      </select>
+    </div>
+    <div class="chips" role="group" aria-label="Lọc nhanh trạng thái mời">
+      <button class="chip active" type="button" data-invite-filter="">Tất cả</button>
+      <button class="chip" type="button" data-invite-filter="chua">Chưa mời</button>
+      <button class="chip" type="button" data-invite-filter="da">Đã mời</button>
+      <button class="chip" type="button" id="btnAddGroup">+ Thêm nhóm</button>
+    </div>
+    <p class="muted small" style="margin:0">Chạm 1 lần vào nút trạng thái để đổi. Chạm tên khách để sửa đầy đủ. Chạm “Chi tiết” để nhập nhanh tiền và ghi chú.</p>
+  </section>
+
+  <!-- Danh sách, nhóm theo thứ tự nhóm -->
+  <section id="guestList" aria-label="Danh sách khách mời"></section>
+  <div id="emptyState" class="card empty" hidden>
+    <b>Chưa có khách mời nào</b>
+    <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
+  </div>
+</main>
+
+<div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
+
+<!-- Form khách -->
+<div class="overlay" id="guestModal" role="dialog" aria-modal="true" aria-label="Thêm hoặc sửa khách mời">
+  <div class="sheet">
+    <h2 id="guestModalTitle">Thêm khách mời</h2>
+    <form id="guestForm">
+      <label for="fName">Tên khách mời *</label>
+      <input type="text" id="fName" required maxlength="120" placeholder="Ví dụ: Gia đình bác Hùng" autocomplete="off" enterkeyhint="next">
+      <label for="fGroup">Nhóm khách mời</label>
+      <select id="fGroup"></select>
+      <label>Trạng thái mời</label>
+      <div class="status-row">
+        <button class="seg" type="button" id="segNotInvited">Chưa mời</button>
+        <button class="seg" type="button" id="segInvited">Đã mời</button>
+      </div>
+      <label for="fAmount">Tiền mừng (VNĐ)</label>
+      <input type="text" id="fAmount" inputmode="decimal" autocomplete="off" placeholder="Để trống nếu chưa nhập">
+      <div class="hint">Để trống = chưa xác định, khác với 0 đồng. Nhập được dấu chấm hoặc dấu phẩy.</div>
+      <div class="quick-row" style="margin-top:8px">
+        <button type="button" data-quick="200000">200K</button>
+        <button type="button" data-quick="300000">300K</button>
+        <button type="button" data-quick="500000">500K</button>
+        <button type="button" data-quick="1000000">1M</button>
+      </div>
+      <label>Trạng thái mừng lại</label>
+      <div class="status-row">
+        <button class="seg" type="button" id="segWaiting">Chờ mừng lại</button>
+        <button class="seg" type="button" id="segReturned">Đã mừng lại</button>
+      </div>
+      <label for="fNote">Ghi chú</label>
+      <textarea id="fNote" maxlength="1000" placeholder="Ví dụ: Đã gửi thiệp, đi cùng vợ/chồng…"></textarea>
+      <div class="btn-row">
+        <button class="btn-secondary" type="button" id="btnCancelGuest">Hủy</button>
+        <button class="btn-primary" type="submit" id="btnSaveGuest">Lưu khách</button>
+      </div>
+      <p class="muted small" id="guestFormError" hidden style="color:#a33333"></p>
+    </form>
+  </div>
+</div>
+
+<!-- Xác nhận chung -->
+<div class="overlay" id="confirmModal" role="dialog" aria-modal="true" aria-label="Xác nhận">
+  <div class="sheet">
+    <h2 id="confirmTitle">Xác nhận</h2>
+    <p id="confirmText"></p>
+    <div id="confirmExtra"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" type="button" id="btnConfirmCancel">Hủy</button>
+      <button class="btn-danger" type="button" id="btnConfirmOk">Xác nhận xóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nhóm -->
+<div class="overlay" id="groupModal" role="dialog" aria-modal="true" aria-label="Nhóm khách mời">
+  <div class="sheet">
+    <h2 id="groupModalTitle">Thêm nhóm mới</h2>
+    <form id="groupForm">
+      <label for="gName">Tên nhóm *</label>
+      <input type="text" id="gName" required maxlength="80" placeholder="Ví dụ: Bạn cấp 3" autocomplete="off">
+      <div class="btn-row">
+        <button class="btn-secondary" type="button" id="btnCancelGroup">Hủy</button>
+        <button class="btn-primary" type="submit" id="btnSaveGroup">Lưu nhóm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Cài đặt / sao lưu -->
+<div class="overlay" id="settingsModal" role="dialog" aria-modal="true" aria-label="Cài đặt">
+  <div class="sheet">
+    <h2>Cài đặt</h2>
+    <div class="warning">Dữ liệu đang lưu cục bộ trên máy này. Hãy sao lưu khi đổi máy hoặc cài lại trình duyệt. Dữ liệu không tự đồng bộ giữa 2 iPhone.</div>
+    <div class="settings-list" style="margin-top:12px">
+      <button type="button" id="btnExport">Xuất sao lưu (JSON)<small>Gồm cả nhà trai và nhà gái, tất cả nhóm và trạng thái.</small></button>
+      <button type="button" id="btnImport">Nhập sao lưu (JSON)<small>Chọn file đã xuất trước đó. Sẽ hỏi gộp hay thay thế.</small></button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <button type="button" id="btnMusic" disabled>Nhạc nền — Sắp ra mắt<small>Chưa triển khai, không tự phát nhạc.</small></button>
+      <button type="button" id="btnBg" disabled>Ảnh nền — Sắp ra mắt<small>Chưa triển khai, giao diện hiện tại ưu tiên dễ đọc.</small></button>
+    </div>
+    <p class="muted small">Không cần tài khoản, không gửi dữ liệu khách mời ra ngoài, không quảng cáo, không theo dõi.</p>
+    <div class="btn-row"><button class="btn-secondary" type="button" id="btnCloseSettings">Đóng</button></div>
+  </div>
+</div>
+
+<!-- Nhập: chọn gộp hay thay thế -->
+<div class="overlay" id="importModal" role="dialog" aria-modal="true" aria-label="Nhập sao lưu">
+  <div class="sheet">
+    <h2>Nhập sao lưu</h2>
+    <p id="importSummary" class="muted"></p>
+    <div class="btn-row" style="flex-direction:column">
+      <button class="btn-primary" type="button" id="btnImportMerge">Gộp vào dữ liệu hiện tại</button>
+      <button class="btn-danger" type="button" id="btnImportReplace">Thay thế toàn bộ dữ liệu</button>
+      <button class="btn-secondary" type="button" id="btnImportCancel">Hủy, giữ nguyên dữ liệu</button>
+    </div>
+    <p class="muted small">Thay thế sẽ xóa toàn bộ khách và nhóm hiện tại trước khi nhập file. Hãy chắc chắn bạn đã có bản sao lưu khác nếu cần.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+  // Đăng ký Service Worker — chỉ chạy trên HTTPS hoặc localhost, theo đúng giới hạn iOS.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,7 +1,8 @@
-/* Service Worker — trang chính ưu tiên mạng (mất mạng mới dùng cache), các file còn lại cache-first.
+/* Service Worker — trang chính và file code (JS/CSS) ưu tiên mạng, các file còn lại cache-first.
+   Lý do: bản trước JS/CSS cache-first nên trang mới (3 nút) có thể đi kèm JS cũ (chỉ 2 nút, nút thứ 3 bấm không được) nếu chỉ mở app 1 lần.
    Không cache dữ liệu IndexedDB (dữ liệu ở trên máy, không qua mạng).
    Bản cũ cache-first cho trang chính nên app cài trên màn hình chính hay kẹt bản cũ sau khi đẩy. */
-const CACHE = 'cuoi-chung-minh-v8';
+const CACHE = 'cuoi-chung-minh-v9';
 const ASSETS = [
   './', './index.html', './style.css', './app.js', './db.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png',
@@ -25,7 +26,20 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-  // File tĩnh: dùng cache trước cho nhanh, chưa có thì tải mạng và lưu lại.
+  // File code (JS/CSS): ưu tiên mạng để trang và code luôn cùng bản, tránh lệch bản gây nút bấm không được.
+  // Mất mạng thì dùng bản đã lưu.
+  const url = new URL(e.request.url);
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    e.respondWith(
+      fetch(e.request).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        return res;
+      }).catch(() => caches.match(e.request, { ignoreSearch: true }))
+    );
+    return;
+  }
+  // File tĩnh khác: dùng cache trước cho nhanh, chưa có thì tải mạng và lưu lại.
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then((cached) => cached || fetch(e.request).then((res) => {
       const copy = res.clone();

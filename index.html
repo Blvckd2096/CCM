@@ -92,7 +92,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 00:10</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 00:15</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -106,6 +106,16 @@
       <input type="text" id="fName" required maxlength="120" placeholder="Ví dụ: Gia đình bác Hùng" autocomplete="off" enterkeyhint="next">
       <label for="fGroup">Nhóm khách mời</label>
       <select id="fGroup"></select>
+      <div id="peopleField" hidden>
+        <label for="fPeople">Số lượng người</label>
+        <div class="people-row">
+          <button class="people-btn" type="button" id="btnPeopleMinus" aria-label="Giảm số người">−</button>
+          <input type="text" id="fPeople" inputmode="numeric" autocomplete="off" value="1" aria-label="Số lượng người">
+          <button class="people-btn" type="button" id="btnPeoplePlus" aria-label="Tăng số người">+</button>
+          <span class="muted small">người</span>
+        </div>
+        <div class="hint">Chỉ hiện khi chọn nhóm Gia đình. Dùng + / − để tăng chỉnh nhanh.</div>
+      </div>
       <label>Trạng thái mời</label>
       <div class="status-row">
         <button class="seg" type="button" id="segNotInvited">Chưa mời</button>

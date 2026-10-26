@@ -135,7 +135,7 @@
     '<article class="guest" data-guest-id="' + esc(g.id) + '">' +
       '<div class="guest-top">' +
         '<div style="min-width:0"><div class="guest-name"><button type="button" data-edit="' + esc(g.id) + '">' + esc(g.name) + '</button></div>' +
-        '<div class="guest-sub">' + esc(groupName(g.groupId)) + (g.amount === null ? ' • Chưa nhập tiền' : ' • ' + DB.formatAmount(g.amount) + ' VNĐ') + '</div></div>' +
+        '<div class="guest-sub">' + esc(groupName(g.groupId)) + (g.peopleCount ? ' • ' + g.peopleCount + ' người' : '') + (g.amount === null ? ' • Chưa nhập tiền' : ' • ' + DB.formatAmount(g.amount) + ' VNĐ') + '</div></div>' +
         '<button type="button" class="pill ' + (g.invited ? 'invited' : 'notinvited') + '" data-toggle-invite="' + esc(g.id) + '">' + (g.invited ? 'Đã mời' : 'Chưa mời') + '</button>' +
       '</div>' +
       '<div class="guest-middle">' +
@@ -269,10 +269,29 @@
   }
 
   // ---------- Form khách ----------
+  function isFamilyGroup(groupId) {
+    const gr = groups.find((x) => x.id === groupId);
+    return !!(gr && gr.name.trim() === 'Gia đình');
+  }
+  function clampPeople(n) {
+    n = parseInt(n, 10);
+    if (Number.isNaN(n)) return 1;
+    return Math.min(99, Math.max(1, n));
+  }
+  function setPeople(n) {
+    const v = clampPeople(n);
+    $('#fPeople').value = v;
+    if (editingGuest) editingGuest.peopleCount = v;
+    return v;
+  }
+  function updatePeopleField() {
+    const show = isFamilyGroup($('#fGroup').value);
+    $('#peopleField').hidden = !show;
+  }
   function openGuestForm(guest) {
     editingGuest = guest
-      ? { id: guest.id, invited: guest.invited, returned: guest.returned }
-      : { id: null, invited: false, returned: 'cho' };
+      ? { id: guest.id, invited: guest.invited, returned: guest.returned, peopleCount: (Number.isInteger(guest.peopleCount) ? guest.peopleCount : null) }
+      : { id: null, invited: false, returned: 'cho', peopleCount: 1 };
     $('#guestModalTitle').textContent = guest ? 'Sửa khách mời' : 'Thêm khách mời';
     $('#fName').value = guest ? guest.name : '';
     const sel = $('#fGroup');
@@ -283,6 +302,8 @@
     sel.innerHTML = myGroups.map((gr) => '<option value="' + esc(gr.id) + '"' + (gr.id === defaultGroupId ? ' selected' : '') + '>' + esc(gr.name) + '</option>').join('');
     $('#fAmount').value = guest && guest.amount !== null && guest.amount !== undefined ? DB.formatAmount(guest.amount) : '';
     $('#fNote').value = guest ? (guest.note || '') : '';
+    $('#fPeople').value = editingGuest.peopleCount || 1;
+    updatePeopleField();
     $('#guestFormError').hidden = true;
     updateGuestSegments();
     openOverlay('#guestModal');
@@ -386,6 +407,14 @@
       $('#filterInvited').value = filters.invited;
       $$('[data-invite-filter]').forEach((b) => b.classList.toggle('active', b.dataset.inviteFilter === filters.invited));
       renderList(); saveView();
+      return;
+    }
+    if (t.id === 'segWaiting' || t.id === 'segReturned' || t.id === 'segFullmonth') {
+      // Dự phòng: nếu listener trực tiếp bị mất, bấm vẫn đổi được trạng thái.
+      if (editingGuest) {
+        editingGuest.returned = t.id === 'segReturned' ? 'da' : t.id === 'segFullmonth' ? 'thang' : 'cho';
+        updateGuestSegments();
+      }
       return;
     }
     if (id('toggleInvite')) { toggleInvite(id('toggleInvite')); return; }
@@ -538,6 +567,10 @@
   $('#segReturned').addEventListener('click', () => { editingGuest.returned = 'da'; updateGuestSegments(); });
   $('#segWaiting').addEventListener('click', () => { editingGuest.returned = 'cho'; updateGuestSegments(); });
   $('#segFullmonth').addEventListener('click', () => { editingGuest.returned = 'thang'; updateGuestSegments(); });
+  $('#fGroup').addEventListener('change', () => { updatePeopleField(); });
+  $('#btnPeopleMinus').addEventListener('click', () => { setPeople((parseInt($('#fPeople').value, 10) || 1) - 1); });
+  $('#btnPeoplePlus').addEventListener('click', () => { setPeople((parseInt($('#fPeople').value, 10) || 1) + 1); });
+  $('#fPeople').addEventListener('blur', () => { setPeople($('#fPeople').value); });
   $$('#guestForm .quick-row button').forEach((b) => b.addEventListener('click', () => {
     $('#fAmount').value = DB.formatAmount(Number(b.dataset.quick));
   }));
@@ -550,12 +583,13 @@
     const amount = DB.parseAmount($('#fAmount').value);
     if (Number.isNaN(amount)) { const err = $('#guestFormError'); err.textContent = 'Số tiền không hợp lệ. Chỉ nhập số.'; err.hidden = false; return; }
     const groupId = $('#fGroup').value || (groupsFor(side)[0] && groupsFor(side)[0].id);
+    const peopleCount = isFamilyGroup(groupId) ? clampPeople($('#fPeople').value) : null;
     if (!groupId) { toast('Chưa có nhóm nào. Hãy thêm nhóm trước.'); return; }
     saving = true;
     $('#btnSaveGuest').disabled = true;
     const rec = editingGuest.id
-      ? Object.assign({}, guests.find((x) => x.id === editingGuest.id), { name, groupId, invited: editingGuest.invited, amount, returned: editingGuest.returned, note: $('#fNote').value })
-      : { id: DB.uid(), side, name, groupId, invited: editingGuest.invited, amount, returned: editingGuest.returned, note: $('#fNote').value, createdAt: DB.nowISO(), updatedAt: DB.nowISO() };
+      ? Object.assign({}, guests.find((x) => x.id === editingGuest.id), { name, groupId, invited: editingGuest.invited, amount, returned: editingGuest.returned, peopleCount, note: $('#fNote').value })
+      : { id: DB.uid(), side, name, groupId, invited: editingGuest.invited, amount, returned: editingGuest.returned, peopleCount, note: $('#fNote').value, createdAt: DB.nowISO(), updatedAt: DB.nowISO() };
     saveGuestRecord(rec, true).then(() => {
       saving = false; $('#btnSaveGuest').disabled = false;
       // Chỉ lưu nhóm khi đã lưu thành công; bấm Hủy thì không đổi nhóm mặc định.
@@ -641,7 +675,8 @@
         id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(),
         groupId: g.groupId || '', invited: !!g.invited,
         amount: (g.amount === null || g.amount === undefined) ? null : g.amount,
-        returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho', note: g.note || '',
+        returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho',
+        peopleCount: (Number.isInteger(g.peopleCount) && g.peopleCount >= 1 && g.peopleCount <= 99) ? g.peopleCount : null, note: g.note || '',
         createdAt: g.createdAt || DB.nowISO(), updatedAt: DB.nowISO(),
       };
       ops.push(DB.saveGuest(rec));
@@ -658,7 +693,8 @@
           pendingImport.guests.forEach((g) => ops.push(DB.saveGuest({
             id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(), groupId: g.groupId || '',
             invited: !!g.invited, amount: (g.amount === null || g.amount === undefined) ? null : g.amount,
-            returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho', note: g.note || '',
+            returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho',
+        peopleCount: (Number.isInteger(g.peopleCount) && g.peopleCount >= 1 && g.peopleCount <= 99) ? g.peopleCount : null, note: g.note || '',
             createdAt: g.createdAt || DB.nowISO(), updatedAt: DB.nowISO(),
           })));
           return Promise.all(ops);

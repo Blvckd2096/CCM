@@ -111,6 +111,7 @@
     if (g.side !== 'trai' && g.side !== 'gai') return 'Bên gia đình không hợp lệ.';
     if (g.amount !== null && g.amount !== undefined && (!Number.isInteger(g.amount) || g.amount < 0)) return 'Số tiền mừng không hợp lệ.';
     if (g.returned !== 'cho' && g.returned !== 'da' && g.returned !== 'thang') return 'Trạng thái mừng không hợp lệ.';
+    if (g.peopleCount !== null && g.peopleCount !== undefined && (!Number.isInteger(g.peopleCount) || g.peopleCount < 1 || g.peopleCount > 99)) return 'Số lượng người không hợp lệ.';
     return null;
   }
 

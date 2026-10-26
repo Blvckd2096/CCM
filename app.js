@@ -240,6 +240,14 @@
     });
   }
 
+  // Nhóm mặc định cho lần thêm sau = nhóm của lần nhập trước, lưu riêng từng bên.
+  function getLastGroupId(s) {
+    try { return localStorage.getItem('cuoi_last_group_' + s) || ''; } catch (e) { return ''; }
+  }
+  function setLastGroupId(s, groupId) {
+    try { if (groupId) localStorage.setItem('cuoi_last_group_' + s, groupId); } catch (e) {}
+  }
+
   // ---------- Form khách ----------
   function openGuestForm(guest) {
     editingGuest = guest
@@ -248,7 +256,11 @@
     $('#guestModalTitle').textContent = guest ? 'Sửa khách mời' : 'Thêm khách mời';
     $('#fName').value = guest ? guest.name : '';
     const sel = $('#fGroup');
-    sel.innerHTML = groupsFor(side).map((gr) => '<option value="' + esc(gr.id) + '"' + (guest && gr.id === guest.groupId ? ' selected' : '') + '>' + esc(gr.name) + '</option>').join('');
+    const myGroups = groupsFor(side);
+    // Sửa thì giữ nhóm của khách đó; thêm mới thì lấy nhóm lần nhập trước, nếu nhóm đó không còn thì về nhóm đầu tiên.
+    let defaultGroupId = guest ? guest.groupId : getLastGroupId(side);
+    if (!myGroups.find((gr) => gr.id === defaultGroupId)) defaultGroupId = myGroups[0] ? myGroups[0].id : '';
+    sel.innerHTML = myGroups.map((gr) => '<option value="' + esc(gr.id) + '"' + (gr.id === defaultGroupId ? ' selected' : '') + '>' + esc(gr.name) + '</option>').join('');
     $('#fAmount').value = guest && guest.amount !== null && guest.amount !== undefined ? DB.formatAmount(guest.amount) : '';
     $('#fNote').value = guest ? (guest.note || '') : '';
     $('#guestFormError').hidden = true;
@@ -485,6 +497,8 @@
       : { id: DB.uid(), side, name, groupId, invited: editingGuest.invited, amount, returned: editingGuest.returned, note: $('#fNote').value, createdAt: DB.nowISO(), updatedAt: DB.nowISO() };
     saveGuestRecord(rec, true).then(() => {
       saving = false; $('#btnSaveGuest').disabled = false;
+      // Chỉ lưu nhóm khi đã lưu thành công; bấm Hủy thì không đổi nhóm mặc định.
+      setLastGroupId(side, groupId);
       closeAll(); renderAll(); toast(editingGuest.id ? 'Đã cập nhật khách mời.' : 'Đã thêm khách mời.');
     }).catch(() => { saving = false; $('#btnSaveGuest').disabled = false; });
   });

@@ -1,5 +1,5 @@
 /* Service Worker — cache-first cho shell, không cache dữ liệu IndexedDB (dữ liệu ở trên máy, không qua mạng). */
-const CACHE = 'cuoi-chung-minh-v3';
+const CACHE = 'cuoi-chung-minh-v4';
 const ASSETS = [
   './', './index.html', './style.css', './app.js', './db.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png',

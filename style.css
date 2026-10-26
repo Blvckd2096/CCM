@@ -95,6 +95,12 @@ h3 { font-size: 14px; }
   min-width: 25px; min-height: 25px; border: 1px solid var(--border); background: #fff;
   border-radius: 8px; font-size: 12px; padding: 0 5px;
 }
+.mini-btn.danger { color: #a33333; }
+.add-group-card { text-align: center; }
+.add-group-bottom {
+  width: 100%; min-height: 38px; border: 0; border-radius: 11px; background: var(--accent);
+  color: #fff; font-weight: 700; font-size: 15px;
+}
 
 .guest {
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);

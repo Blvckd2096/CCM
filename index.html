@@ -79,7 +79,8 @@
       <button class="chip active" type="button" data-invite-filter="">Tất cả</button>
       <button class="chip" type="button" data-invite-filter="chua">Chưa mời</button>
       <button class="chip" type="button" data-invite-filter="da">Đã mời</button>
-      <button class="chip" type="button" id="btnAddGroup">+ Thêm nhóm</button>
+      <button class="chip" type="button" data-collapse-all>Thu gọn / Mở tất cả</button>
+      <button class="chip" type="button" id="btnAddGroup">+ Thêm mục mới</button>
     </div>
     <p class="muted small" style="margin:0">Chạm 1 lần vào nút trạng thái để đổi. Chạm tên khách để sửa đầy đủ. Chạm “Chi tiết” để nhập nhanh tiền và ghi chú.</p>
   </section>
@@ -90,7 +91,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 26/10/2026 17:21</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 26/10/2026 19:38</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -150,9 +151,9 @@
 <!-- Nhóm -->
 <div class="overlay" id="groupModal" role="dialog" aria-modal="true" aria-label="Nhóm khách mời">
   <div class="sheet">
-    <h2 id="groupModalTitle">Thêm nhóm mới</h2>
+    <h2 id="groupModalTitle">Thêm mục mới</h2>
     <form id="groupForm">
-      <label for="gName">Tên nhóm *</label>
+      <label for="gName">Tên mục *</label>
       <input type="text" id="gName" required maxlength="80" placeholder="Ví dụ: Bạn cấp 3" autocomplete="off">
       <div class="btn-row">
         <button class="btn-secondary" type="button" id="btnCancelGroup">Hủy</button>

@@ -22,6 +22,15 @@
   } catch (e) {}
   let guests = [];
   let groups = [];
+  // Các mục đang thu gọn, lưu lại để lần mở sau vẫn thu gọn như cũ.
+  let collapsedGroups = new Set();
+  try {
+    const savedCollapsed = JSON.parse(localStorage.getItem('cuoi_collapsed_groups') || '[]');
+    if (Array.isArray(savedCollapsed)) collapsedGroups = new Set(savedCollapsed.filter((x) => typeof x === 'string'));
+  } catch (e) {}
+  function saveCollapsedGroups() {
+    try { localStorage.setItem('cuoi_collapsed_groups', JSON.stringify(Array.from(collapsedGroups))); } catch (e) {}
+  }
   let editingGuest = null; // {id|null, invited, returned}
   let editingGroup = null;
   let pendingImport = null;
@@ -159,18 +168,23 @@
       totalShown += list.length;
       const allInGroup = guests.filter((g) => g.side === side && g.groupId === gr.id);
       const invitedInGroup = allInGroup.filter((g) => g.invited).length;
-      html += '<section class="group"><div class="group-head"><div><h3>' + esc(gr.name) + '</h3>' +
-        '<div class="count">' + invitedInGroup + '/' + allInGroup.length + ' đã mời</div></div>' +
+      const collapsed = collapsedGroups.has(gr.id);
+      html += '<section class="group" data-group-section="' + esc(gr.id) + '"><div class="group-head"><div><h3>' + esc(gr.name) + '</h3>' +
+        '<div class="count">' + invitedInGroup + '/' + allInGroup.length + ' đã mời' + (collapsed ? ' • Đã thu gọn' : '') + '</div></div>' +
         '<div class="group-actions">' +
+          '<button type="button" class="mini-btn" data-group-collapse="' + esc(gr.id) + '" aria-label="' + (collapsed ? 'Mở rộng mục' : 'Thu gọn mục') + '">' + (collapsed ? '▸' : '▾') + '</button>' +
           '<button type="button" class="mini-btn" data-group-up="' + esc(gr.id) + '" aria-label="Đưa nhóm lên trên" ' + (idx === 0 ? 'disabled' : '') + '>↑</button>' +
           '<button type="button" class="mini-btn" data-group-down="' + esc(gr.id) + '" aria-label="Đưa nhóm xuống dưới" ' + (idx === myGroups.length - 1 ? 'disabled' : '') + '>↓</button>' +
           '<button type="button" class="mini-btn" data-group-rename="' + esc(gr.id) + '">Đổi tên</button>' +
-          '<button type="button" class="mini-btn" data-group-delete="' + esc(gr.id) + '">Xóa</button>' +
+          '<button type="button" class="mini-btn danger" data-group-delete="' + esc(gr.id) + '">Xóa mục</button>' +
         '</div></div>';
+      html += '<div class="group-body"' + (collapsed ? ' hidden' : '') + '>';
       if (list.length === 0) html += '<p class="muted small" style="padding:0 2px">Chưa có khách trong nhóm này.</p>';
       else html += list.map(guestCardHTML).join('');
-      html += '</section>';
+      html += '</div></section>';
     });
+    // Nút Thêm mục mới ở cuối danh sách cho dễ thấy, ngoài nút ở thanh công cụ.
+    html += '<div class="card add-group-card"><button type="button" class="add-group-bottom" data-add-group>＋ Thêm mục mới</button><p class="muted small" style="text-align:center;margin:6px 0 0">Tạo thêm một mục khách mời cho bên đang chọn.</p></div>';
     wrap.innerHTML = html;
     $('#emptyState').hidden = !(myGroups.length === 0 || (totalShown === 0 && !filters.search && !filters.group && !filters.invited && !filters.returned && guestsFor(side).length === 0));
     if (totalShown === 0 && guestsFor(side).length > 0) {
@@ -407,11 +421,46 @@
       Promise.all([DB.saveGroup(a), DB.saveGroup(b)]).then(renderAll);
       return;
     }
+    if (id('groupCollapse')) {
+      const gid = id('groupCollapse');
+      const section = document.querySelector('[data-group-section="' + CSS.escape(gid) + '"]');
+      const body = section ? section.querySelector('.group-body') : null;
+      if (body) {
+        body.hidden = !body.hidden;
+        const nowCollapsed = body.hidden;
+        if (nowCollapsed) collapsedGroups.add(gid); else collapsedGroups.delete(gid);
+        saveCollapsedGroups();
+        t.textContent = nowCollapsed ? '▸' : '▾';
+        t.setAttribute('aria-label', nowCollapsed ? 'Mở rộng mục' : 'Thu gọn mục');
+        const countEl = section.querySelector('.count');
+        if (countEl) {
+          const base = countEl.textContent.replace(' • Đã thu gọn', '');
+          countEl.textContent = nowCollapsed ? base + ' • Đã thu gọn' : base;
+        }
+      }
+      return;
+    }
+    if (t.dataset.collapseAll !== undefined) {
+      const myGroups = groupsFor(side);
+      const anyOpen = myGroups.some((g) => !collapsedGroups.has(g.id));
+      myGroups.forEach((g) => { if (anyOpen) collapsedGroups.add(g.id); else collapsedGroups.delete(g.id); });
+      saveCollapsedGroups();
+      renderList();
+      return;
+    }
+    if (t.dataset.addGroup !== undefined) {
+      editingGroup = null;
+      $('#groupModalTitle').textContent = 'Thêm mục mới';
+      $('#gName').value = '';
+      openOverlay('#groupModal');
+      setTimeout(() => $('#gName').focus(), 60);
+      return;
+    }
     if (id('groupRename')) {
       const gr = groups.find((x) => x.id === id('groupRename'));
       if (!gr) return;
       editingGroup = gr;
-      $('#groupModalTitle').textContent = 'Đổi tên nhóm';
+      $('#groupModalTitle').textContent = 'Đổi tên mục';
       $('#gName').value = gr.name;
       openOverlay('#groupModal');
       setTimeout(() => $('#gName').focus(), 60);
@@ -422,19 +471,23 @@
       if (!gr) return;
       const inGroup = guests.filter((x) => x.side === side && x.groupId === gr.id);
       const others = groupsFor(side).filter((x) => x.id !== gr.id);
+      const removeGroupLocally = () => {
+        groups = groups.filter((x) => x.id !== gr.id);
+        collapsedGroups.delete(gr.id); saveCollapsedGroups();
+      };
       if (inGroup.length === 0) {
-        askConfirm('Xóa nhóm?', 'Xóa nhóm “' + gr.name + '” không? Nhóm này đang trống.', 'Xóa nhóm', '', () => {
-          DB.deleteGroup(gr.id).then(() => { groups = groups.filter((x) => x.id !== gr.id); renderAll(); toast('Đã xóa nhóm.'); });
+        askConfirm('Xóa mục?', 'Xóa mục “' + gr.name + '” không? Mục này đang trống.', 'Xóa mục', '', () => {
+          DB.deleteGroup(gr.id).then(() => { removeGroupLocally(); renderAll(); toast('Đã xóa mục.'); });
         });
       } else if (others.length === 0) {
-        toast('Không thể xóa nhóm cuối cùng khi vẫn còn khách. Hãy chuyển khách sang nhóm mới trước.');
+        toast('Không thể xóa mục cuối cùng khi vẫn còn khách. Hãy chuyển khách sang mục mới trước.');
       } else {
         const opts = others.map((o) => '<option value="' + esc(o.id) + '">' + esc(o.name) + '</option>').join('');
-        askConfirm('Xóa nhóm có khách?', 'Nhóm “' + gr.name + '” đang có ' + inGroup.length + ' khách. Chọn nhóm để chuyển toàn bộ khách sang trước khi xóa:', 'Chuyển khách và xóa nhóm',
-          '<label style="display:block;font-size:14px;font-weight:600;margin:10px 0 5px">Chuyển sang nhóm</label><select id="deleteGroupTarget" style="width:100%;min-height:46px;border:1px solid #e5e0da;border-radius:11px;padding:10px">' + opts + '</select>', () => {
+        askConfirm('Xóa mục có khách?', 'Mục “' + gr.name + '” đang có ' + inGroup.length + ' khách. Chọn mục để chuyển toàn bộ khách sang trước khi xóa:', 'Chuyển khách và xóa mục',
+          '<label style="display:block;font-size:14px;font-weight:600;margin:10px 0 5px">Chuyển sang mục</label><select id="deleteGroupTarget" style="width:100%;min-height:46px;border:1px solid #e5e0da;border-radius:11px;padding:10px">' + opts + '</select>', () => {
             const target = $('#deleteGroupTarget').value;
             const moves = inGroup.map((g) => { g.groupId = target; g.updatedAt = DB.nowISO(); return DB.saveGuest(g); });
-            Promise.all(moves).then(() => DB.deleteGroup(gr.id)).then(() => load()).then(() => toast('Đã chuyển khách và xóa nhóm.'));
+            Promise.all(moves).then(() => DB.deleteGroup(gr.id)).then(() => { collapsedGroups.delete(gr.id); saveCollapsedGroups(); return load(); }).then(() => toast('Đã chuyển khách và xóa mục.'));
           });
       }
       return;
@@ -505,7 +558,7 @@
 
   $('#btnAddGroup').addEventListener('click', () => {
     editingGroup = null;
-    $('#groupModalTitle').textContent = 'Thêm nhóm mới';
+    $('#groupModalTitle').textContent = 'Thêm mục mới';
     $('#gName').value = '';
     openOverlay('#groupModal');
     setTimeout(() => $('#gName').focus(), 60);
@@ -514,14 +567,14 @@
   $('#groupForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = $('#gName').value.trim();
-    if (!name) { toast('Tên nhóm là bắt buộc.'); return; }
+    if (!name) { toast('Tên mục là bắt buộc.'); return; }
     if (editingGroup) {
       editingGroup.name = name;
-      DB.saveGroup(editingGroup).then(() => { closeAll(); renderAll(); toast('Đã đổi tên nhóm.'); });
+      DB.saveGroup(editingGroup).then(() => { closeAll(); renderAll(); toast('Đã đổi tên mục.'); });
     } else {
       const maxOrder = groupsFor(side).reduce((m, g) => Math.max(m, g.order), -1);
       const gr = { id: DB.uid(), side, name, order: maxOrder + 1, createdAt: DB.nowISO() };
-      DB.saveGroup(gr).then(() => { groups.push(gr); closeAll(); renderAll(); toast('Đã thêm nhóm mới.'); });
+      DB.saveGroup(gr).then(() => { groups.push(gr); closeAll(); renderAll(); toast('Đã thêm mục mới.'); });
     }
   });
 

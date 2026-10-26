@@ -116,8 +116,9 @@ h3 { font-size: 14px; }
 }
 .pill.invited { background: #e6f4ea; border-color: #b7dcc0; color: #256b3a; }
 .pill.notinvited { background: #f2f0ee; color: #6b6560; }
-.pill.returned { background: #e6f4ea; border-color: #b7dcc0; color: #256b3a; }
-.pill.waiting { background: #fff7e0; border-color: #e8d9a0; color: #7a5b00; }
+.pill.returned { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pill.waiting { background: #fff; border-color: var(--accent-soft2); color: var(--accent-ink); }
+.pill.fullmonth { background: var(--accent-soft); border-color: var(--accent-soft2); color: var(--accent-ink); }
 .guest-middle { display: flex; gap: 6px; margin-top: 7px; align-items: center; flex-wrap: wrap; }
 .money-wrap { flex: 1; min-width: 140px; display: flex; align-items: center; gap: 6px; }
 .money-wrap input {
@@ -179,6 +180,15 @@ h3 { font-size: 14px; }
 .btn-secondary { background: #fff; border: 1px solid var(--border); }
 .btn-danger { background: #a33333; color: #fff; border: 0; }
 .status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.status-row-3 { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 6px; }
+.status-row-3 .seg { font-size: 13px; padding: 5px 4px; white-space: nowrap; }
+#segWaiting { background: #fff; border-color: var(--accent-soft2); color: var(--accent-ink); }
+#segFullmonth { background: var(--accent-soft); border-color: var(--accent-soft2); color: var(--accent-ink); }
+#segReturned { background: var(--accent); border-color: var(--accent); color: #fff; }
+#segWaiting.active, #segFullmonth.active, #segReturned.active { box-shadow: inset 0 0 0 1px var(--accent); font-weight: 800; }
+.stat-wide { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+.stat-wide b { font-size: 16px; }
+.stat-wide span { font-size: 13px; }
 .seg { border: 1px solid var(--border); background: #fff; border-radius: 10px; min-height: 32px; font-size: 14px; }
 .seg.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 800; }
 

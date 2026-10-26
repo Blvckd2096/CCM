@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="description" content="Cưới chúng mình — quản lý khách mời, tiền mừng và mừng lại cho nhà trai và nhà gái, lưu offline trên iPhone.">
+<meta name="description" content="Cưới chúng mình — quản lý khách mời, tiền mừng và mừng cho nhà trai và nhà gái, lưu offline trên iPhone.">
 <title>Cưới chúng mình</title>
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
@@ -19,7 +19,7 @@
 <header class="topbar">
   <div>
     <h1>Cưới chúng mình</h1>
-    <p id="subtitle">Quản lý khách mời • Tiền mừng • Mừng lại</p>
+    <p id="subtitle">Quản lý khách mời • Tiền mừng • Mừng</p>
   </div>
   <button class="icon-btn" id="btnSettings" type="button" aria-label="Mở cài đặt">Cài đặt</button>
 </header>
@@ -48,9 +48,10 @@
       <div class="stat"><b id="statInvited">0</b><span>Đã mời</span></div>
       <div class="stat"><b id="statNotInvited">0</b><span>Chưa mời</span></div>
       <div class="stat"><b id="statWithMoney">0</b><span>Có tiền mừng</span></div>
-      <div class="stat"><b id="statWaiting">0</b><span>Chờ mừng lại</span></div>
-      <div class="stat"><b id="statReturned">0</b><span>Đã mừng lại</span></div>
-      <div class="stat"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
+      <div class="stat"><b id="statWaiting">0</b><span>Chưa cưới</span></div>
+      <div class="stat"><b id="statReturned">0</b><span>Đã mừng</span></div>
+      <div class="stat"><b id="statFullmonth">0</b><span>Chơi đầy tháng</span></div>
+      <div class="stat stat-wide"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
     </div>
     <div class="stats-note">
       <button type="button" id="btnToggleCombined">Xem tổng hợp 2 bên ▾</button>
@@ -71,8 +72,8 @@
       <select id="filterInvited" aria-label="Lọc theo trạng thái mời">
         <option value="">Mời: Tất cả</option><option value="da">Đã mời</option><option value="chua">Chưa mời</option>
       </select>
-      <select id="filterReturned" aria-label="Lọc theo trạng thái mừng lại">
-        <option value="">Mừng lại: Tất cả</option><option value="cho">Chờ mừng lại</option><option value="da">Đã mừng lại</option>
+      <select id="filterReturned" aria-label="Lọc theo trạng thái mừng">
+        <option value="">Mừng: Tất cả</option><option value="cho">Chưa cưới</option><option value="da">Đã mừng</option><option value="thang">Chơi đầy tháng</option>
       </select>
     </div>
     <div class="chips" role="group" aria-label="Lọc nhanh trạng thái mời">
@@ -91,7 +92,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 26/10/2026 19:38</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 00:10</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -119,10 +120,11 @@
         <button type="button" data-quick="500000">500K</button>
         <button type="button" data-quick="1000000">1M</button>
       </div>
-      <label>Trạng thái mừng lại</label>
-      <div class="status-row">
-        <button class="seg" type="button" id="segWaiting">Chờ mừng lại</button>
-        <button class="seg" type="button" id="segReturned">Đã mừng lại</button>
+      <label>Trạng thái mừng</label>
+      <div class="status-row-3">
+        <button class="seg" type="button" id="segWaiting">Chưa cưới</button>
+        <button class="seg" type="button" id="segReturned">Đã mừng</button>
+        <button class="seg" type="button" id="segFullmonth">Chơi đầy tháng</button>
       </div>
       <label for="fNote">Ghi chú</label>
       <textarea id="fNote" maxlength="1000" placeholder="Ví dụ: Đã gửi thiệp, đi cùng vợ/chồng…"></textarea>

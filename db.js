@@ -110,7 +110,7 @@
     if (!g.name || !String(g.name).trim()) return 'Tên khách mời là bắt buộc.';
     if (g.side !== 'trai' && g.side !== 'gai') return 'Bên gia đình không hợp lệ.';
     if (g.amount !== null && g.amount !== undefined && (!Number.isInteger(g.amount) || g.amount < 0)) return 'Số tiền mừng không hợp lệ.';
-    if (g.returned !== 'cho' && g.returned !== 'da') return 'Trạng thái mừng lại không hợp lệ.';
+    if (g.returned !== 'cho' && g.returned !== 'da' && g.returned !== 'thang') return 'Trạng thái mừng không hợp lệ.';
     return null;
   }
 

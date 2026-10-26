@@ -16,7 +16,7 @@
       filters.search = typeof savedFilters.search === 'string' ? savedFilters.search : '';
       filters.group = typeof savedFilters.group === 'string' ? savedFilters.group : '';
       filters.invited = savedFilters.invited === 'da' || savedFilters.invited === 'chua' ? savedFilters.invited : '';
-      filters.returned = savedFilters.returned === 'da' || savedFilters.returned === 'cho' ? savedFilters.returned : '';
+      filters.returned = savedFilters.returned === 'da' || savedFilters.returned === 'cho' || savedFilters.returned === 'thang' ? savedFilters.returned : '';
     }
     savedScroll = Number(localStorage.getItem('cuoi_last_scroll') || 0) || 0;
   } catch (e) {}
@@ -59,6 +59,10 @@
     return g ? g.name : 'Khác';
   }
 
+  function returnedLabel(v) { return v === 'da' ? 'Đã mừng' : v === 'thang' ? 'Chơi đầy tháng' : 'Chưa cưới'; }
+  function returnedClass(v) { return v === 'da' ? 'returned' : v === 'thang' ? 'fullmonth' : 'waiting'; }
+  function nextReturned(v) { return v === 'cho' ? 'da' : v === 'da' ? 'thang' : 'cho'; }
+
   function calcStats(list) {
     const total = list.length;
     const invited = list.filter((g) => g.invited).length;
@@ -69,6 +73,7 @@
       withMoney: withMoneyList.length, noMoney: total - withMoneyList.length,
       waiting: list.filter((g) => g.returned === 'cho').length,
       returned: list.filter((g) => g.returned === 'da').length,
+      fullmonth: list.filter((g) => g.returned === 'thang').length,
     };
   }
 
@@ -86,6 +91,7 @@
     $('#statWithMoney').textContent = st.withMoney;
     $('#statWaiting').textContent = st.waiting;
     $('#statReturned').textContent = st.returned;
+    $('#statFullmonth').textContent = st.fullmonth;
     $('#statNoMoney').textContent = st.noMoney;
     $('#tabTraiSub').textContent = trai.total + ' khách';
     $('#tabGaiSub').textContent = gai.total + ' khách';
@@ -134,7 +140,7 @@
       '</div>' +
       '<div class="guest-middle">' +
         '<div class="money-wrap"><input type="text" inputmode="decimal" data-money="' + esc(g.id) + '" value="' + esc(moneyVal) + '" placeholder="Tiền mừng" aria-label="Tiền mừng của ' + esc(g.name) + '"><span>VNĐ</span></div>' +
-        '<button type="button" class="pill ' + (g.returned === 'da' ? 'returned' : 'waiting') + '" data-toggle-returned="' + esc(g.id) + '">' + (g.returned === 'da' ? 'Đã mừng lại' : 'Chờ mừng lại') + '</button>' +
+        '<button type="button" class="pill ' + returnedClass(g.returned) + '" data-toggle-returned="' + esc(g.id) + '">' + returnedLabel(g.returned) + '</button>' +
       '</div>' +
       (shortNote ? '<div class="note-preview">' + esc(shortNote) + '</div>' : '') +
       '<div class="guest-actions"><button type="button" class="text-btn" data-expand="' + esc(g.id) + '">Chi tiết ▾</button>' +
@@ -224,11 +230,11 @@
   function toggleReturned(id) {
     const g = guests.find((x) => x.id === id);
     if (!g) return;
-    g.returned = g.returned === 'da' ? 'cho' : 'da';
+    g.returned = nextReturned(g.returned);
     const btn = document.querySelector('[data-toggle-returned="' + CSS.escape(id) + '"]');
     if (btn) {
-      btn.textContent = g.returned === 'da' ? 'Đã mừng lại' : 'Chờ mừng lại';
-      btn.className = 'pill ' + (g.returned === 'da' ? 'returned' : 'waiting');
+      btn.textContent = returnedLabel(g.returned);
+      btn.className = 'pill ' + returnedClass(g.returned);
     }
     saveGuestRecord(g, true).then(() => renderStats()).catch(() => renderAll());
   }
@@ -287,6 +293,7 @@
     $('#segNotInvited').classList.toggle('active', !editingGuest.invited);
     $('#segReturned').classList.toggle('active', editingGuest.returned === 'da');
     $('#segWaiting').classList.toggle('active', editingGuest.returned === 'cho');
+    $('#segFullmonth').classList.toggle('active', editingGuest.returned === 'thang');
   }
 
   // ---------- Xác nhận ----------
@@ -530,6 +537,7 @@
   $('#segNotInvited').addEventListener('click', () => { editingGuest.invited = false; updateGuestSegments(); });
   $('#segReturned').addEventListener('click', () => { editingGuest.returned = 'da'; updateGuestSegments(); });
   $('#segWaiting').addEventListener('click', () => { editingGuest.returned = 'cho'; updateGuestSegments(); });
+  $('#segFullmonth').addEventListener('click', () => { editingGuest.returned = 'thang'; updateGuestSegments(); });
   $$('#guestForm .quick-row button').forEach((b) => b.addEventListener('click', () => {
     $('#fAmount').value = DB.formatAmount(Number(b.dataset.quick));
   }));
@@ -633,7 +641,7 @@
         id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(),
         groupId: g.groupId || '', invited: !!g.invited,
         amount: (g.amount === null || g.amount === undefined) ? null : g.amount,
-        returned: g.returned === 'da' ? 'da' : 'cho', note: g.note || '',
+        returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho', note: g.note || '',
         createdAt: g.createdAt || DB.nowISO(), updatedAt: DB.nowISO(),
       };
       ops.push(DB.saveGuest(rec));
@@ -650,7 +658,7 @@
           pendingImport.guests.forEach((g) => ops.push(DB.saveGuest({
             id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(), groupId: g.groupId || '',
             invited: !!g.invited, amount: (g.amount === null || g.amount === undefined) ? null : g.amount,
-            returned: g.returned === 'da' ? 'da' : 'cho', note: g.note || '',
+            returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho', note: g.note || '',
             createdAt: g.createdAt || DB.nowISO(), updatedAt: DB.nowISO(),
           })));
           return Promise.all(ops);

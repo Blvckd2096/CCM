@@ -1,7 +1,7 @@
 /* Service Worker — trang chính ưu tiên mạng (mất mạng mới dùng cache), các file còn lại cache-first.
    Không cache dữ liệu IndexedDB (dữ liệu ở trên máy, không qua mạng).
    Bản cũ cache-first cho trang chính nên app cài trên màn hình chính hay kẹt bản cũ sau khi đẩy. */
-const CACHE = 'cuoi-chung-minh-v6';
+const CACHE = 'cuoi-chung-minh-v8';
 const ASSETS = [
   './', './index.html', './style.css', './app.js', './db.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png',

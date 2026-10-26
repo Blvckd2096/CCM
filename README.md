@@ -10,17 +10,17 @@ Dữ liệu lưu trên máy bằng IndexedDB. Cài đặt nhỏ (tab gần nhấ
 - Nhóm mặc định: Gia đình, Họ hàng, Bạn cấp 2, Bạn cấp 3, Bạn đại học, Bạn bè,
   Đồng nghiệp, Hàng xóm, Khác. Thêm / đổi tên / xóa / lên-xuống thứ tự / chuyển khách giữa các nhóm.
   Xóa nhóm có khách: bắt buộc chọn nhóm đích để chuyển khách sang, không tự làm mất dữ liệu.
-- Khách mời: tên bắt buộc, nhóm, đã mời/chưa mời (chạm 1 lần), tiền mừng, chờ/đã mừng lại (chạm 1 lần), ghi chú.
+- Khách mời: tên bắt buộc, nhóm, đã mời/chưa mời (chạm 1 lần), tiền mừng, chưa cưới/đã mừng/chơi đầy tháng (chạm 1 lần để đổi vòng), ghi chú.
 - Tiền mừng: nhập tay, định dạng kiểu Việt Nam (500.000), chấp nhận dấu chấm/phẩy khi nhập,
   lưu dạng số nguyên VNĐ. **Để trống = chưa xác định, khác 0 đồng.**
   Nút nhập nhanh: 200K / 300K / 500K / 1M, chọn xong vẫn sửa lại được.
-  Tiền mừng lại là trạng thái riêng, **không cộng vào tổng tiền mừng nhận được**.
+  Trạng thái mừng là riêng, **không cộng vào tổng tiền mừng nhận được**.
 - Ghi chú nhiều dòng, xem trước ngắn trong danh sách, sửa trong Chi tiết, lưu khi rời ô nhập.
 - Thống kê tự cập nhật ngay: tổng khách, đã mời, chưa mời, tổng tiền mừng,
-  số khách có tiền mừng, chờ mừng lại, đã mừng lại, chưa nhập tiền.
+  số khách có tiền mừng, chưa cưới, đã mừng, chơi đầy tháng, chưa nhập tiền.
   Tổng tiền hiển thị cả dạng đầy đủ (25.500.000 VNĐ) và dạng rút gọn (25,5 triệu).
   Có tổng hợp 2 bên riêng: nhà trai, nhà gái, cả hai bên — không cộng trùng khách.
-- Tìm kiếm theo tên/ghi chú, lọc theo nhóm, trạng thái mời, trạng thái mừng lại.
+- Tìm kiếm theo tên/ghi chú, lọc theo nhóm, trạng thái mời, trạng thái mừng.
 - Danh sách gọn: mỗi khách chỉ hiện tên, trạng thái mời và tiền mừng; ghi chú, nhập nhanh,
   chuyển nhóm nằm trong “Chi tiết”.
 - Sao lưu: Cài đặt → Xuất sao lưu (JSON) gồm cả 2 bên, mọi nhóm và trạng thái.

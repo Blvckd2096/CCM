@@ -6,10 +6,22 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
   let side = 'trai';
-  try { const saved = localStorage.getItem('cuoi_last_side'); if (saved === 'trai' || saved === 'gai') side = saved; } catch (e) {}
+  let savedScroll = 0;
+  let filters = { search: '', group: '', invited: '', returned: '' };
+  try {
+    const savedSide = localStorage.getItem('cuoi_last_side');
+    if (savedSide === 'trai' || savedSide === 'gai') side = savedSide;
+    const savedFilters = JSON.parse(localStorage.getItem('cuoi_last_filters') || 'null');
+    if (savedFilters && typeof savedFilters === 'object') {
+      filters.search = typeof savedFilters.search === 'string' ? savedFilters.search : '';
+      filters.group = typeof savedFilters.group === 'string' ? savedFilters.group : '';
+      filters.invited = savedFilters.invited === 'da' || savedFilters.invited === 'chua' ? savedFilters.invited : '';
+      filters.returned = savedFilters.returned === 'da' || savedFilters.returned === 'cho' ? savedFilters.returned : '';
+    }
+    savedScroll = Number(localStorage.getItem('cuoi_last_scroll') || 0) || 0;
+  } catch (e) {}
   let guests = [];
   let groups = [];
-  let filters = { search: '', group: '', invited: '', returned: '' };
   let editingGuest = null; // {id|null, invited, returned}
   let editingGroup = null;
   let pendingImport = null;
@@ -96,7 +108,8 @@
     if (filters.invited === 'da') list = list.filter((g) => g.invited);
     if (filters.invited === 'chua') list = list.filter((g) => !g.invited);
     if (filters.returned) list = list.filter((g) => g.returned === filters.returned);
-    return list.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '') || a.name.localeCompare(b.name, 'vi'));
+    // Danh sách khách luôn xếp theo tên A → Z (tiếng Việt), không xếp theo thời gian sửa nữa.
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
   }
 
   function guestCardHTML(g) {
@@ -280,13 +293,44 @@
     return Promise.all(ops);
   }
 
+  // Lưu chỗ đang xem: tab + bộ lọc + vị trí cuộn, để lần vào sau trở lại đúng chỗ cũ.
+  function saveView() {
+    try {
+      localStorage.setItem('cuoi_last_side', side);
+      localStorage.setItem('cuoi_last_filters', JSON.stringify(filters));
+      localStorage.setItem('cuoi_last_scroll', String(Math.round(window.scrollY || 0)));
+    } catch (e) {}
+  }
+  let scrollTimer = null;
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(saveView, 300);
+  }, { passive: true });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveView(); });
+  window.addEventListener('pagehide', saveView);
+
   // ---------- Khởi tạo ----------
   function load() {
     return DB.ensureDefaultGroups('trai')
       .then(() => DB.ensureDefaultGroups('gai'))
       .then(() => Promise.all([DB.getAllGuests(), DB.getAllGroups()]))
       .then(([gs, grs]) => { guests = gs || []; groups = grs || []; return normalizeOrphans(); })
-      .then(() => renderAll())
+      .then(() => {
+        renderAll();
+        // Khôi phục bộ lọc đã lưu vào ô nhập, rồi trở lại vị trí cuộn lần trước.
+        try {
+          $('#searchInput').value = filters.search;
+          $('#filterInvited').value = filters.invited;
+          $('#filterReturned').value = filters.returned;
+          $$('[data-invite-filter]').forEach((b) => b.classList.toggle('active', b.dataset.inviteFilter === filters.invited));
+          // Nhóm đã lưu có thể không còn thuộc bên này thì bỏ lọc nhóm, tránh danh sách trống oan.
+          if (filters.group && !groupsFor(side).find((g) => g.id === filters.group)) { filters.group = ''; renderGroupFilter(); }
+        } catch (e) {}
+        renderList();
+        if (savedScroll > 0) {
+          requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, savedScroll)));
+        }
+      })
       .catch((e) => { toast('Không đọc được dữ liệu: ' + e.message); });
   }
 
@@ -297,17 +341,18 @@
     const id = (attr) => t.dataset[attr];
     if (t.dataset.tab) {
       side = t.dataset.tab;
-      try { localStorage.setItem('cuoi_last_side', side); } catch (err) {}
       filters.group = '';
       $('#filterGroup').value = '';
       renderAll();
+      window.scrollTo(0, 0);
+      saveView();
       return;
     }
     if (t.dataset.inviteFilter !== undefined) {
       filters.invited = t.dataset.inviteFilter;
       $('#filterInvited').value = filters.invited;
       $$('[data-invite-filter]').forEach((b) => b.classList.toggle('active', b.dataset.inviteFilter === filters.invited));
-      renderList();
+      renderList(); saveView();
       return;
     }
     if (id('toggleInvite')) { toggleInvite(id('toggleInvite')); return; }
@@ -405,14 +450,14 @@
     if (!Number.isNaN(p) && p !== null) e.target.value = DB.formatAmount(p);
   });
 
-  $('#searchInput').addEventListener('input', (e) => { filters.search = e.target.value.trim(); renderList(); });
-  $('#filterGroup').addEventListener('change', (e) => { filters.group = e.target.value; renderList(); });
+  $('#searchInput').addEventListener('input', (e) => { filters.search = e.target.value.trim(); renderList(); saveView(); });
+  $('#filterGroup').addEventListener('change', (e) => { filters.group = e.target.value; renderList(); saveView(); });
   $('#filterInvited').addEventListener('change', (e) => {
     filters.invited = e.target.value;
     $$('[data-invite-filter]').forEach((b) => b.classList.toggle('active', b.dataset.inviteFilter === filters.invited));
-    renderList();
+    renderList(); saveView();
   });
-  $('#filterReturned').addEventListener('change', (e) => { filters.returned = e.target.value; renderList(); });
+  $('#filterReturned').addEventListener('change', (e) => { filters.returned = e.target.value; renderList(); saveView(); });
 
   $('#btnAddGuest').addEventListener('click', () => openGuestForm(null));
   $('#btnCancelGuest').addEventListener('click', closeAll);

@@ -199,16 +199,19 @@
     const myGroups = groupsFor(side);
     let html = '';
     let totalShown = 0;
+    let shownGroups = 0;
     myGroups.forEach((gr, idx) => {
       const list = filteredGuests(gr.id);
       // Khi đang lọc/tìm, ẩn nhóm không có khách phù hợp.
       const filtering = filters.search || filters.group || filters.invited || filters.returned || filters.money;
       if (filtering && list.length === 0) return;
       totalShown += list.length;
+      const altClass = (shownGroups % 2 === 1) ? ' group-alt' : '';
+      shownGroups++;
       const allInGroup = guests.filter((g) => g.side === side && g.groupId === gr.id);
       const invitedInGroup = allInGroup.filter((g) => g.invited).length;
       const collapsed = collapsedGroups.has(gr.id);
-      html += '<section class="group" data-group-section="' + esc(gr.id) + '"><div class="group-head"><div><h3>' + esc(gr.name) + '</h3>' +
+      html += '<section class="group' + altClass + '" data-group-section="' + esc(gr.id) + '"><div class="group-head"><div><h3>' + esc(gr.name) + '</h3>' +
         '<div class="count">' + invitedInGroup + '/' + allInGroup.length + ' đã mời' + (collapsed ? ' • Đã thu gọn' : '') + '</div></div>' +
         '<div class="group-actions">' +
           '<button type="button" class="mini-btn" data-group-collapse="' + esc(gr.id) + '" aria-label="' + (collapsed ? 'Mở rộng mục' : 'Thu gọn mục') + '">' + (collapsed ? '▸' : '▾') + '</button>' +

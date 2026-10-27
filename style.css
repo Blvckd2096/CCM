@@ -86,7 +86,11 @@ h3 { font-size: 14px; }
 .muted { color: var(--muted); font-size: 13px; }
 .small { font-size: 12px; }
 
-.group { margin-bottom: 10px; }
+.group { margin-bottom: 10px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 8px 8px 2px; }
+/* Màu xen kẽ cho các mục: mục chẵn nền trắng, mục lẻ nền nhạt theo tab (trai xanh, gái hồng) để dễ phân biệt ranh giới khi thu gọn. */
+.group-alt { background: var(--accent-soft); border-color: var(--accent-soft2); }
+/* Nhà gái: màu nhạt #FFF3F7 gần như trắng nên khó thấy, dùng #FFEAF2 đậm hơn một nấc cho mục lẻ. */
+body[data-side="gai"] .group-alt { background: #FFEAF2; }
 .group-head {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   padding: 4px 2px 6px;

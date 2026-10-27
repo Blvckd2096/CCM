@@ -7,7 +7,7 @@
 
   let side = 'trai';
   let savedScroll = 0;
-  let filters = { search: '', group: '', invited: '', returned: '' };
+  let filters = { search: '', group: '', invited: '', returned: '', money: '' };
   try {
     const savedSide = localStorage.getItem('cuoi_last_side');
     if (savedSide === 'trai' || savedSide === 'gai') side = savedSide;
@@ -19,6 +19,7 @@
       // Chỉ kiểm tra kiểu ở đây (renderStatusFilter sẽ xóa nếu mã không còn tồn tại),
       // vì danh sách trạng thái được định nghĩa sau đoạn này, gọi getAllStatuses() ở đây sẽ lỗi TDZ.
       filters.returned = typeof savedFilters.returned === 'string' ? savedFilters.returned : '';
+      filters.money = savedFilters.money === 'co' || savedFilters.money === 'chua' ? savedFilters.money : '';
     }
     savedScroll = Number(localStorage.getItem('cuoi_last_scroll') || 0) || 0;
   } catch (e) {}
@@ -108,7 +109,12 @@
     $('#statNotInvited').textContent = st.notInvited;
     $('#statWithMoney').textContent = st.withMoney;
     $('#statusStats').innerHTML = getAllStatuses().map((s) =>
-      '<div class="stat"><b>' + (st.statusCounts[s.id] || 0) + '</b><span>' + esc(s.label) + '</span></div>').join('');
+      '<div class="stat' + (filters.returned === s.id ? ' active' : '') + '" data-stat="status:' + esc(s.id) + '" role="button" tabindex="0"><b>' + (st.statusCounts[s.id] || 0) + '</b><span>' + esc(s.label) + '</span></div>').join('');
+    const setStatActive = (id, on) => { const el = $(id); if (el && el.parentElement) el.parentElement.classList.toggle('active', !!on); };
+    setStatActive('#statInvited', filters.invited === 'da');
+    setStatActive('#statNotInvited', filters.invited === 'chua');
+    setStatActive('#statWithMoney', filters.money === 'co');
+    setStatActive('#statNoMoney', filters.money === 'chua');
     $('#statNoMoney').textContent = st.noMoney;
     $('#tabTraiSub').textContent = trai.total + ' khách';
     $('#tabGaiSub').textContent = gai.total + ' khách';
@@ -147,6 +153,8 @@
     }
     if (filters.invited === 'da') list = list.filter((g) => g.invited);
     if (filters.invited === 'chua') list = list.filter((g) => !g.invited);
+    if (filters.money === 'co') list = list.filter((g) => g.amount !== null && g.amount !== undefined);
+    if (filters.money === 'chua') list = list.filter((g) => g.amount === null || g.amount === undefined);
     if (filters.returned) list = list.filter((g) => g.returned === filters.returned);
     // Danh sách khách luôn xếp theo tên A → Z (tiếng Việt), không xếp theo thời gian sửa nữa.
     return list.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
@@ -194,7 +202,7 @@
     myGroups.forEach((gr, idx) => {
       const list = filteredGuests(gr.id);
       // Khi đang lọc/tìm, ẩn nhóm không có khách phù hợp.
-      const filtering = filters.search || filters.group || filters.invited || filters.returned;
+      const filtering = filters.search || filters.group || filters.invited || filters.returned || filters.money;
       if (filtering && list.length === 0) return;
       totalShown += list.length;
       const allInGroup = guests.filter((g) => g.side === side && g.groupId === gr.id);
@@ -217,13 +225,29 @@
     // Nút Thêm mục mới ở cuối danh sách cho dễ thấy, ngoài nút ở thanh công cụ.
     html += '<div class="card add-group-card"><button type="button" class="add-group-bottom" data-add-group>＋ Thêm mục mới</button><p class="muted small" style="text-align:center;margin:6px 0 0">Tạo thêm một mục khách mời cho bên đang chọn.</p></div>';
     wrap.innerHTML = html;
-    $('#emptyState').hidden = !(myGroups.length === 0 || (totalShown === 0 && !filters.search && !filters.group && !filters.invited && !filters.returned && guestsFor(side).length === 0));
+    $('#emptyState').hidden = !(myGroups.length === 0 || (totalShown === 0 && !filters.search && !filters.group && !filters.invited && !filters.returned && !filters.money && guestsFor(side).length === 0));
     if (totalShown === 0 && guestsFor(side).length > 0) {
       wrap.innerHTML = '<div class="card empty"><b>Không tìm thấy khách phù hợp</b><span>Thử đổi từ khóa hoặc bộ lọc.</span></div>';
     }
+    renderActiveFilterBar();
   }
 
-  function renderAll() { renderStats(); renderGroupFilter(); renderStatusFilter(); renderList(); }
+  function renderActiveFilterBar() {
+    const bar = $('#activeFilterBar');
+    if (!bar) return;
+    const parts = [];
+    if (filters.group) parts.push('Nhóm: ' + groupName(filters.group));
+    if (filters.invited === 'da') parts.push('Đã mời');
+    if (filters.invited === 'chua') parts.push('Chưa mời');
+    if (filters.returned) parts.push(returnedLabel(filters.returned));
+    if (filters.money === 'co') parts.push('Có tiền mừng');
+    if (filters.money === 'chua') parts.push('Chưa nhập tiền');
+    if (filters.search) parts.push('Tìm: ' + filters.search);
+    if (parts.length === 0) { bar.hidden = true; return; }
+    bar.hidden = false;
+    $('#activeFilterText').textContent = 'Đang xem: ' + parts.join(' • ') + ' — danh sách xếp A → Z, bấm lại vào ô thống kê để bỏ lọc.';
+  }
+  function renderAll() { renderStats(); renderGroupFilter(); renderStatusFilter(); renderList(); renderActiveFilterBar(); }
 
   function refreshStatsAndTabs() { renderStats(); }
 
@@ -561,6 +585,48 @@
       }
       return;
     }
+  });
+
+  // Bấm ô thống kê -> lọc và sổ ra danh sách khách thuộc ô đó, xếp A → Z (renderList đã xếp A → Z).
+  // Bấm lại vào cùng 1 ô thì bỏ lọc ô đó. Bấm ô khác thì đổi sang lọc ô đó.
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-stat]');
+    if (!el) return;
+    // Không chặn bấm nút bên trong ô (nếu có).
+    if (e.target.closest('button')) return;
+    const stat = el.dataset.stat;
+    let label = '';
+    if (stat === 'all') {
+      filters = { search: '', group: '', invited: '', returned: '', money: '' };
+      $('#searchInput').value = ''; $('#filterGroup').value = ''; $('#filterInvited').value = ''; $('#filterReturned').value = '';
+      label = 'Tất cả khách';
+    } else {
+      // Lọc theo ô mới, xóa các lọc thống kê khác để danh sách không bị giao nhau khó hiểu.
+      const prevInvited = filters.invited, prevReturned = filters.returned, prevMoney = filters.money;
+      filters.invited = ''; filters.returned = ''; filters.money = '';
+      if (stat === 'invited') { filters.invited = prevInvited === 'da' ? '' : 'da'; label = 'Đã mời'; }
+      else if (stat === 'notinvited') { filters.invited = prevInvited === 'chua' ? '' : 'chua'; label = 'Chưa mời'; }
+      else if (stat === 'withmoney') { filters.money = prevMoney === 'co' ? '' : 'co'; label = 'Có tiền mừng'; }
+      else if (stat === 'nomoney') { filters.money = prevMoney === 'chua' ? '' : 'chua'; label = 'Chưa nhập tiền'; }
+      else if (stat.startsWith('status:')) {
+        const sid = stat.slice(7);
+        filters.returned = prevReturned === sid ? '' : sid;
+        label = returnedLabel(sid);
+      } else return;
+      $('#filterInvited').value = filters.invited;
+      $('#filterReturned').value = filters.returned;
+      if (filters.invited === '' && filters.returned === '' && filters.money === '') label = 'Đã bỏ lọc, xem tất cả';
+      else label = 'Đang xem: ' + label;
+    }
+    renderAll(); saveView();
+    const listEl = $('#guestList');
+    if (listEl) listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast(label);
+  });
+  $('#btnClearFilters').addEventListener('click', () => {
+    filters = { search: '', group: '', invited: '', returned: '', money: '' };
+    $('#searchInput').value = ''; $('#filterGroup').value = ''; $('#filterInvited').value = ''; $('#filterReturned').value = '';
+    renderAll(); saveView();
   });
 
   document.addEventListener('change', (e) => {

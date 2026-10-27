@@ -225,3 +225,8 @@ h3 { font-size: 14px; }
   .filter-row { grid-template-columns: 1fr 1fr 1fr; }
   .filter-row select:last-child { grid-column: auto; }
 }
+
+/* Ô thống kê bấm được: bấm để sổ ra danh sách khách thuộc ô đó */
+.stat[data-stat], .stats-top [data-stat] { cursor: pointer; }
+.stat.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.stats-top [data-stat].active { outline: 2px solid var(--accent); border-radius: 10px; }

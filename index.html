@@ -34,21 +34,21 @@
   <!-- Thống kê -->
   <section class="card stats" aria-label="Thống kê">
     <div class="stats-top">
-      <div>
+      <div data-stat="withmoney" role="button" tabindex="0">
         <div class="label" id="statSideLabel">Nhà trai</div>
         <div class="big" id="statTotalMoney">0 VNĐ</div>
         <div class="label" id="statTotalMoneyCompact">Tổng tiền mừng đã nhập</div>
       </div>
-      <div style="text-align:right">
+      <div style="text-align:right" data-stat="all" role="button" tabindex="0">
         <div class="label">Tổng khách</div>
         <div class="big" id="statTotalGuests">0</div>
       </div>
     </div>
     <div class="stats-grid">
-      <div class="stat"><b id="statInvited">0</b><span>Đã mời</span></div>
-      <div class="stat"><b id="statNotInvited">0</b><span>Chưa mời</span></div>
-      <div class="stat"><b id="statWithMoney">0</b><span>Có tiền mừng</span></div>
-      <div class="stat stat-wide"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
+      <div class="stat" data-stat="invited" role="button" tabindex="0"><b id="statInvited">0</b><span>Đã mời</span></div>
+      <div class="stat" data-stat="notinvited" role="button" tabindex="0"><b id="statNotInvited">0</b><span>Chưa mời</span></div>
+      <div class="stat" data-stat="withmoney" role="button" tabindex="0"><b id="statWithMoney">0</b><span>Có tiền mừng</span></div>
+      <div class="stat stat-wide" data-stat="nomoney" role="button" tabindex="0"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
     </div>
     <div class="stats-status">
       <div class="label" style="margin-bottom:6px">Trạng thái mừng</div>
@@ -87,13 +87,18 @@
     <p class="muted small" style="margin:0">Chạm 1 lần vào nút trạng thái để đổi. Chạm tên khách để sửa đầy đủ. Chạm “Chi tiết” để nhập nhanh tiền và ghi chú.</p>
   </section>
 
+  <div id="activeFilterBar" class="card" hidden style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <span id="activeFilterText" class="small" style="font-size:13px"></span>
+    <button type="button" class="text-btn" id="btnClearFilters" style="white-space:nowrap">Xóa lọc</button>
+  </div>
+
   <!-- Danh sách, nhóm theo thứ tự nhóm -->
   <section id="guestList" aria-label="Danh sách khách mời"></section>
   <div id="emptyState" class="card empty" hidden>
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 13:02</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 13:35</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>

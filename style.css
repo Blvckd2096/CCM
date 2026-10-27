@@ -45,6 +45,9 @@ main { max-width: 720px; margin: 0 auto; padding: 10px 10px 110px; }
   padding: 9px 8px; font-weight: 700; font-size: 15px; min-height: 36px;
 }
 .tab small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); margin-top: 1px; }
+/* Mỗi tab luôn mang màu riêng của bên đó, kể cả khi chưa chọn (iPhone mặc định nút là xanh hệ thống, làm tab gái lệch tông). */
+.tab[data-tab="trai"] { color: #2f5f7d; border-color: #C9E4F6; }
+.tab[data-tab="gai"] { color: #B84A72; border-color: #FFD6E4; }
 .tab.active[data-tab="trai"] { background: #E8F4FC; border-color: #477FA5; color: #2f5f7d; }
 .tab.active[data-tab="gai"] { background: #FFEAF2; border-color: #EE7FA8; color: #B84A72; }
 

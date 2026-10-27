@@ -16,7 +16,9 @@
       filters.search = typeof savedFilters.search === 'string' ? savedFilters.search : '';
       filters.group = typeof savedFilters.group === 'string' ? savedFilters.group : '';
       filters.invited = savedFilters.invited === 'da' || savedFilters.invited === 'chua' ? savedFilters.invited : '';
-      filters.returned = savedFilters.returned === 'da' || savedFilters.returned === 'cho' || savedFilters.returned === 'thang' ? savedFilters.returned : '';
+      // Chỉ kiểm tra kiểu ở đây (renderStatusFilter sẽ xóa nếu mã không còn tồn tại),
+      // vì danh sách trạng thái được định nghĩa sau đoạn này, gọi getAllStatuses() ở đây sẽ lỗi TDZ.
+      filters.returned = typeof savedFilters.returned === 'string' ? savedFilters.returned : '';
     }
     savedScroll = Number(localStorage.getItem('cuoi_last_scroll') || 0) || 0;
   } catch (e) {}
@@ -59,9 +61,27 @@
     return g ? g.name : 'Khác';
   }
 
-  function returnedLabel(v) { return v === 'da' ? 'Đã mừng' : v === 'thang' ? 'Chơi đầy tháng' : 'Chưa cưới'; }
-  function returnedClass(v) { return v === 'da' ? 'returned' : v === 'thang' ? 'fullmonth' : 'waiting'; }
-  function nextReturned(v) { return v === 'cho' ? 'da' : v === 'da' ? 'thang' : 'cho'; }
+  const DEFAULT_STATUSES = [
+    { id: 'cho', label: 'Mình chưa mừng dịp gì' },
+    { id: 'da', label: 'Mình đã mừng cưới' },
+    { id: 'thang', label: 'Chơi đầy tháng' },
+    { id: 'hieu', label: 'Đám hiếu' },
+    { id: 'om', label: 'Thăm ốm' },
+  ];
+  let customStatuses = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem('cuoi_custom_statuses') || '[]');
+    if (Array.isArray(saved)) customStatuses = saved.filter((s) => s && typeof s.id === 'string' && typeof s.label === 'string' && s.label.trim() && !DEFAULT_STATUSES.some((d) => d.id === s.id));
+  } catch (e) {}
+  function getAllStatuses() { return DEFAULT_STATUSES.concat(customStatuses); }
+  function saveCustomStatuses() { try { localStorage.setItem('cuoi_custom_statuses', JSON.stringify(customStatuses)); } catch (e) {} }
+  function returnedLabel(v) { const s = getAllStatuses().find((x) => x.id === v); return s ? s.label : DEFAULT_STATUSES[0].label; }
+  function returnedClass(v) { return v === 'cho' ? 'waiting' : 'occasion'; }
+  function nextReturned(v) {
+    const list = getAllStatuses();
+    const i = list.findIndex((x) => x.id === v);
+    return list[(i + 1) % list.length].id;
+  }
 
   function calcStats(list) {
     const total = list.length;
@@ -71,9 +91,7 @@
     return {
       total, invited, notInvited: total - invited, totalMoney,
       withMoney: withMoneyList.length, noMoney: total - withMoneyList.length,
-      waiting: list.filter((g) => g.returned === 'cho').length,
-      returned: list.filter((g) => g.returned === 'da').length,
-      fullmonth: list.filter((g) => g.returned === 'thang').length,
+      statusCounts: getAllStatuses().reduce((acc, s) => { acc[s.id] = list.filter((g) => g.returned === s.id).length; return acc; }, {}),
     };
   }
 
@@ -89,9 +107,8 @@
     $('#statInvited').textContent = st.invited;
     $('#statNotInvited').textContent = st.notInvited;
     $('#statWithMoney').textContent = st.withMoney;
-    $('#statWaiting').textContent = st.waiting;
-    $('#statReturned').textContent = st.returned;
-    $('#statFullmonth').textContent = st.fullmonth;
+    $('#statusStats').innerHTML = getAllStatuses().map((s) =>
+      '<div class="stat"><b>' + (st.statusCounts[s.id] || 0) + '</b><span>' + esc(s.label) + '</span></div>').join('');
     $('#statNoMoney').textContent = st.noMoney;
     $('#tabTraiSub').textContent = trai.total + ' khách';
     $('#tabGaiSub').textContent = gai.total + ' khách';
@@ -104,6 +121,14 @@
       t.setAttribute('aria-selected', active ? 'true' : 'false');
     });
     document.body.dataset.side = side;
+  }
+
+  function renderStatusFilter() {
+    const sel = $('#filterReturned');
+    const prev = filters.returned;
+    sel.innerHTML = '<option value="">Mừng: Tất cả</option>' + getAllStatuses().map((s) =>
+      '<option value="' + esc(s.id) + '"' + (s.id === prev ? ' selected' : '') + '>' + esc(s.label) + '</option>').join('');
+    if (prev && !getAllStatuses().some((s) => s.id === prev)) { filters.returned = ''; sel.value = ''; }
   }
 
   function renderGroupFilter() {
@@ -198,7 +223,7 @@
     }
   }
 
-  function renderAll() { renderStats(); renderGroupFilter(); renderList(); }
+  function renderAll() { renderStats(); renderGroupFilter(); renderStatusFilter(); renderList(); }
 
   function refreshStatsAndTabs() { renderStats(); }
 
@@ -309,12 +334,17 @@
     openOverlay('#guestModal');
     setTimeout(() => $('#fName').focus(), 60);
   }
+  function renderStatusButtons() {
+    const wrap = $('#statusButtons');
+    if (!wrap || !editingGuest) return;
+    wrap.innerHTML = getAllStatuses().map((s) =>
+      '<button class="seg status-btn' + (editingGuest.returned === s.id ? ' active' : '') + '" type="button" data-status="' + esc(s.id) + '">' + esc(s.label) + '</button>').join('') +
+      '<button class="seg add-status-btn" type="button" data-add-status>+ Thêm trạng thái</button>';
+  }
   function updateGuestSegments() {
     $('#segInvited').classList.toggle('active', !!editingGuest.invited);
     $('#segNotInvited').classList.toggle('active', !editingGuest.invited);
-    $('#segReturned').classList.toggle('active', editingGuest.returned === 'da');
-    $('#segWaiting').classList.toggle('active', editingGuest.returned === 'cho');
-    $('#segFullmonth').classList.toggle('active', editingGuest.returned === 'thang');
+    renderStatusButtons();
   }
 
   // ---------- Xác nhận ----------
@@ -409,12 +439,15 @@
       renderList(); saveView();
       return;
     }
-    if (t.id === 'segWaiting' || t.id === 'segReturned' || t.id === 'segFullmonth') {
-      // Dự phòng: nếu listener trực tiếp bị mất, bấm vẫn đổi được trạng thái.
-      if (editingGuest) {
-        editingGuest.returned = t.id === 'segReturned' ? 'da' : t.id === 'segFullmonth' ? 'thang' : 'cho';
-        updateGuestSegments();
-      }
+    if (t.dataset.status !== undefined) {
+      if (editingGuest) { editingGuest.returned = t.dataset.status; updateGuestSegments(); }
+      return;
+    }
+    if (t.dataset.addStatus !== undefined) {
+      $('#statusModalTitle').textContent = 'Thêm trạng thái mới';
+      $('#sName').value = '';
+      openOverlay('#statusModal');
+      setTimeout(() => $('#sName').focus(), 60);
       return;
     }
     if (id('toggleInvite')) { toggleInvite(id('toggleInvite')); return; }
@@ -564,9 +597,6 @@
   $('#btnCancelGuest').addEventListener('click', closeAll);
   $('#segInvited').addEventListener('click', () => { editingGuest.invited = true; updateGuestSegments(); });
   $('#segNotInvited').addEventListener('click', () => { editingGuest.invited = false; updateGuestSegments(); });
-  $('#segReturned').addEventListener('click', () => { editingGuest.returned = 'da'; updateGuestSegments(); });
-  $('#segWaiting').addEventListener('click', () => { editingGuest.returned = 'cho'; updateGuestSegments(); });
-  $('#segFullmonth').addEventListener('click', () => { editingGuest.returned = 'thang'; updateGuestSegments(); });
   $('#fGroup').addEventListener('change', () => { updatePeopleField(); });
   $('#btnPeopleMinus').addEventListener('click', () => { setPeople((parseInt($('#fPeople').value, 10) || 1) - 1); });
   $('#btnPeoplePlus').addEventListener('click', () => { setPeople((parseInt($('#fPeople').value, 10) || 1) + 1); });
@@ -606,6 +636,17 @@
     setTimeout(() => $('#gName').focus(), 60);
   });
   $('#btnCancelGroup').addEventListener('click', closeAll);
+  $('#btnCancelStatus').addEventListener('click', closeAll);
+  $('#statusForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('#sName').value.trim();
+    if (!name) { toast('Tên trạng thái là bắt buộc.'); return; }
+    if (getAllStatuses().some((s) => s.label.toLowerCase() === name.toLowerCase())) { toast('Trạng thái này đã có.'); return; }
+    const rec = { id: 'custom_' + DB.uid(), label: name };
+    customStatuses.push(rec); saveCustomStatuses();
+    closeAll(); renderStatusButtons(); renderStatusFilter(); renderStats();
+    toast('Đã thêm trạng thái: ' + name);
+  });
   $('#groupForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = $('#gName').value.trim();
@@ -635,7 +676,7 @@
   $('#btnSettings').addEventListener('click', () => openOverlay('#settingsModal'));
   $('#btnCloseSettings').addEventListener('click', closeAll);
   $('#btnExport').addEventListener('click', () => {
-    const data = { app: 'cuoi-chung-minh', version: 1, exportedAt: new Date().toISOString(), groups, guests };
+    const data = { app: 'cuoi-chung-minh', version: 1, exportedAt: new Date().toISOString(), groups, guests, customStatuses };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -666,8 +707,19 @@
     reader.readAsText(file);
   });
   $('#btnImportCancel').addEventListener('click', () => { pendingImport = null; closeAll(); });
+  function restoreCustomStatusesFromImport(data) {
+    if (!data || !Array.isArray(data.customStatuses)) return;
+    let changed = false;
+    data.customStatuses.forEach((s) => {
+      if (s && typeof s.id === 'string' && typeof s.label === 'string' && s.label.trim() && !getAllStatuses().some((x) => x.id === s.id || x.label.toLowerCase() === s.label.toLowerCase())) {
+        customStatuses.push({ id: s.id, label: s.label.trim() }); changed = true;
+      }
+    });
+    if (changed) saveCustomStatuses();
+  }
   $('#btnImportMerge').addEventListener('click', () => {
     if (!pendingImport) return;
+    restoreCustomStatusesFromImport(pendingImport);
     const ops = [];
     pendingImport.groups.forEach((gr) => { if (gr.id && gr.name) ops.push(DB.saveGroup(gr)); });
     pendingImport.guests.forEach((g) => {
@@ -675,7 +727,7 @@
         id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(),
         groupId: g.groupId || '', invited: !!g.invited,
         amount: (g.amount === null || g.amount === undefined) ? null : g.amount,
-        returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho',
+        returned: getAllStatuses().some((s) => s.id === g.returned) ? g.returned : 'cho',
         peopleCount: (Number.isInteger(g.peopleCount) && g.peopleCount >= 1 && g.peopleCount <= 99) ? g.peopleCount : null, note: g.note || '',
         createdAt: g.createdAt || DB.nowISO(), updatedAt: DB.nowISO(),
       };
@@ -687,13 +739,14 @@
     if (!pendingImport) return;
     askConfirm('Thay thế toàn bộ dữ liệu?', 'Toàn bộ khách và nhóm hiện tại sẽ bị xóa trước khi nhập file này. Bạn có chắc không?', 'Thay thế toàn bộ',
       '', () => {
+        restoreCustomStatusesFromImport(pendingImport);
         Promise.all([DB.clear('guests'), DB.clear('groups')]).then(() => {
           const ops = [];
           pendingImport.groups.forEach((gr) => ops.push(DB.saveGroup(gr)));
           pendingImport.guests.forEach((g) => ops.push(DB.saveGuest({
             id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(), groupId: g.groupId || '',
             invited: !!g.invited, amount: (g.amount === null || g.amount === undefined) ? null : g.amount,
-            returned: (g.returned === 'da' || g.returned === 'thang') ? g.returned : 'cho',
+            returned: getAllStatuses().some((s) => s.id === g.returned) ? g.returned : 'cho',
         peopleCount: (Number.isInteger(g.peopleCount) && g.peopleCount >= 1 && g.peopleCount <= 99) ? g.peopleCount : null, note: g.note || '',
             createdAt: g.createdAt || DB.nowISO(), updatedAt: DB.nowISO(),
           })));

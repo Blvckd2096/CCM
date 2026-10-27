@@ -119,6 +119,7 @@ h3 { font-size: 14px; }
 .pill.returned { background: var(--accent); border-color: var(--accent); color: #fff; }
 .pill.waiting { background: #fff; border-color: var(--accent-soft2); color: var(--accent-ink); }
 .pill.fullmonth { background: var(--accent-soft); border-color: var(--accent-soft2); color: var(--accent-ink); }
+.pill.occasion { background: var(--accent-soft); border-color: var(--accent-soft2); color: var(--accent-ink); }
 .guest-middle { display: flex; gap: 6px; margin-top: 7px; align-items: center; flex-wrap: wrap; }
 .money-wrap { flex: 1; min-width: 140px; display: flex; align-items: center; gap: 6px; }
 .money-wrap input {
@@ -191,6 +192,14 @@ h3 { font-size: 14px; }
 .people-row { display: flex; gap: 8px; align-items: center; }
 .people-btn { min-width: 38px; min-height: 38px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-soft); font-size: 18px; font-weight: 800; color: var(--accent-ink); }
 #fPeople { width: 72px; text-align: center; font-weight: 700; }
+.status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.status-grid .seg { font-size: 12px; line-height: 1.25; padding: 6px 4px; min-height: 38px; white-space: normal; word-break: break-word; }
+.status-grid .seg:not(.active) { background: #fff; border-color: var(--accent-soft2); color: var(--accent-ink); }
+.status-grid .seg.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 800; }
+.status-grid .add-status-btn { border-style: dashed; background: #fff; color: var(--accent-ink); font-weight: 700; }
+.status-grid .stat { padding: 6px 4px; }
+.status-grid .stat span { font-size: 11px; line-height: 1.2; display: block; }
+.stats-status { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
 .stat-wide { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; text-align: left; }
 .stat-wide b { font-size: 16px; }
 .stat-wide span { font-size: 13px; }

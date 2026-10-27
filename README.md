@@ -10,7 +10,7 @@ Dữ liệu lưu trên máy bằng IndexedDB. Cài đặt nhỏ (tab gần nhấ
 - Nhóm mặc định: Gia đình, Họ hàng, Bạn cấp 2, Bạn cấp 3, Bạn đại học, Bạn bè,
   Đồng nghiệp, Hàng xóm, Khác. Thêm / đổi tên / xóa / lên-xuống thứ tự / chuyển khách giữa các nhóm.
   Xóa nhóm có khách: bắt buộc chọn nhóm đích để chuyển khách sang, không tự làm mất dữ liệu.
-- Khách mời: tên bắt buộc, nhóm, đã mời/chưa mời (chạm 1 lần), tiền mừng, chưa cưới/đã mừng/chơi đầy tháng (chạm 1 lần để đổi vòng), ghi chú.
+- Khách mời: tên bắt buộc, nhóm, đã mời/chưa mời (chạm 1 lần), tiền mừng, mình chưa mừng dịp gì / mình đã mừng cưới / chơi đầy tháng / đám hiếu / thăm ốm + tự thêm trạng thái mới (chạm 1 lần để đổi vòng, 3 ô 1 hàng), ghi chú.
 - Tiền mừng: nhập tay, định dạng kiểu Việt Nam (500.000), chấp nhận dấu chấm/phẩy khi nhập,
   lưu dạng số nguyên VNĐ. **Để trống = chưa xác định, khác 0 đồng.**
   Nút nhập nhanh: 200K / 300K / 500K / 1M, chọn xong vẫn sửa lại được.

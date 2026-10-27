@@ -48,10 +48,11 @@
       <div class="stat"><b id="statInvited">0</b><span>Đã mời</span></div>
       <div class="stat"><b id="statNotInvited">0</b><span>Chưa mời</span></div>
       <div class="stat"><b id="statWithMoney">0</b><span>Có tiền mừng</span></div>
-      <div class="stat"><b id="statWaiting">0</b><span>Chưa cưới</span></div>
-      <div class="stat"><b id="statReturned">0</b><span>Đã mừng</span></div>
-      <div class="stat"><b id="statFullmonth">0</b><span>Chơi đầy tháng</span></div>
       <div class="stat stat-wide"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
+    </div>
+    <div class="stats-status">
+      <div class="label" style="margin-bottom:6px">Trạng thái mừng</div>
+      <div id="statusStats" class="status-grid"></div>
     </div>
     <div class="stats-note">
       <button type="button" id="btnToggleCombined">Xem tổng hợp 2 bên ▾</button>
@@ -73,7 +74,7 @@
         <option value="">Mời: Tất cả</option><option value="da">Đã mời</option><option value="chua">Chưa mời</option>
       </select>
       <select id="filterReturned" aria-label="Lọc theo trạng thái mừng">
-        <option value="">Mừng: Tất cả</option><option value="cho">Chưa cưới</option><option value="da">Đã mừng</option><option value="thang">Chơi đầy tháng</option>
+        <option value="">Mừng: Tất cả</option>
       </select>
     </div>
     <div class="chips" role="group" aria-label="Lọc nhanh trạng thái mời">
@@ -92,7 +93,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 00:15</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 13:02</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -131,11 +132,7 @@
         <button type="button" data-quick="1000000">1M</button>
       </div>
       <label>Trạng thái mừng</label>
-      <div class="status-row-3">
-        <button class="seg" type="button" id="segWaiting">Chưa cưới</button>
-        <button class="seg" type="button" id="segReturned">Đã mừng</button>
-        <button class="seg" type="button" id="segFullmonth">Chơi đầy tháng</button>
-      </div>
+      <div id="statusButtons" class="status-grid"></div>
       <label for="fNote">Ghi chú</label>
       <textarea id="fNote" maxlength="1000" placeholder="Ví dụ: Đã gửi thiệp, đi cùng vợ/chồng…"></textarea>
       <div class="btn-row">
@@ -176,6 +173,21 @@
 </div>
 
 <!-- Cài đặt / sao lưu -->
+<div class="overlay" id="statusModal" role="dialog" aria-modal="true" aria-label="Thêm trạng thái mới">
+  <div class="sheet">
+    <h2 id="statusModalTitle">Thêm trạng thái mới</h2>
+    <form id="statusForm">
+      <label for="sName">Tên trạng thái *</label>
+      <input type="text" id="sName" required maxlength="80" placeholder="Ví dụ: Mừng tân gia" autocomplete="off">
+      <div class="hint">Trạng thái mới sẽ hiện trong form, thống kê và bộ lọc, xếp cùng các trạng thái khác, 3 ô 1 hàng.</div>
+      <div class="btn-row">
+        <button type="button" class="btn-secondary" id="btnCancelStatus">Hủy</button>
+        <button type="submit" class="btn-primary">Thêm trạng thái</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="overlay" id="settingsModal" role="dialog" aria-modal="true" aria-label="Cài đặt">
   <div class="sheet">
     <h2>Cài đặt</h2>

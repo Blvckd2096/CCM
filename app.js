@@ -230,11 +230,13 @@
       wrap.innerHTML = '<div class="card empty"><b>Không tìm thấy khách phù hợp</b><span>Thử đổi từ khóa hoặc bộ lọc.</span></div>';
     }
     renderActiveFilterBar();
+    if (activeStat) renderStatDetail();
   }
 
   function renderActiveFilterBar() {
     const bar = $('#activeFilterBar');
     if (!bar) return;
+    if (activeStat) { bar.hidden = true; return; }
     const parts = [];
     if (filters.group) parts.push('Nhóm: ' + groupName(filters.group));
     if (filters.invited === 'da') parts.push('Đã mời');
@@ -246,6 +248,47 @@
     if (parts.length === 0) { bar.hidden = true; return; }
     bar.hidden = false;
     $('#activeFilterText').textContent = 'Đang xem: ' + parts.join(' • ') + ' — danh sách xếp A → Z, bấm lại vào ô thống kê để bỏ lọc.';
+  }
+  let activeStat = null; // ô thống kê đang mở list phẳng, null = xem danh sách theo mục như cũ
+  function statLabelFor(stat) {
+    if (stat === 'all') return 'Tất cả khách';
+    if (stat === 'invited') return 'Đã mời';
+    if (stat === 'notinvited') return 'Chưa mời';
+    if (stat === 'withmoney') return 'Có tiền mừng';
+    if (stat === 'nomoney') return 'Chưa nhập tiền';
+    if (stat.startsWith('status:')) return returnedLabel(stat.slice(7));
+    return 'Tất cả khách';
+  }
+  function getStatGuests(stat) {
+    let list = guestsFor(side);
+    if (stat === 'all') { /* giữ nguyên */ }
+    else if (stat === 'invited') list = list.filter((g) => g.invited);
+    else if (stat === 'notinvited') list = list.filter((g) => !g.invited);
+    else if (stat === 'withmoney') list = list.filter((g) => g.amount !== null && g.amount !== undefined);
+    else if (stat === 'nomoney') list = list.filter((g) => g.amount === null || g.amount === undefined);
+    else if (stat.startsWith('status:')) list = list.filter((g) => g.returned === stat.slice(7));
+    else return [];
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
+  }
+  function renderStatDetail() {
+    const panel = $('#statDetail');
+    if (!panel) return;
+    if (!activeStat) { panel.hidden = true; const gl = $('#guestList'); if (gl) gl.hidden = false; return; }
+    const list = getStatGuests(activeStat);
+    $('#statDetailTitle').textContent = 'Đang xem: ' + statLabelFor(activeStat);
+    $('#statDetailSub').textContent = list.length + ' khách • xếp A → Z • bấm Đóng để về danh sách theo mục.';
+    $('#statDetailList').innerHTML = list.length === 0
+      ? '<div class="card empty"><b>Không có khách nào thuộc ô này</b><span>Thử bấm ô khác.</span></div>'
+      : list.map(guestCardHTML).join('');
+    panel.hidden = false;
+    const gl = $('#guestList'); if (gl) gl.hidden = true;
+    const es = $('#emptyState'); if (es) es.hidden = true;
+  }
+  function closeStatDetailView() {
+    if (!activeStat) return;
+    activeStat = null;
+    const panel = $('#statDetail'); if (panel) panel.hidden = true;
+    const gl = $('#guestList'); if (gl) gl.hidden = false;
   }
   function renderAll() { renderStats(); renderGroupFilter(); renderStatusFilter(); renderList(); renderActiveFilterBar(); }
 
@@ -285,7 +328,7 @@
       btn.textContent = returnedLabel(g.returned);
       btn.className = 'pill ' + returnedClass(g.returned);
     }
-    saveGuestRecord(g, true).then(() => renderStats()).catch(() => renderAll());
+    saveGuestRecord(g, true).then(() => { renderStats(); if (activeStat) renderStatDetail(); }).catch(() => renderAll());
   }
 
   function saveMoneyFromInput(input) {
@@ -448,6 +491,7 @@
     if (!t) return;
     const id = (attr) => t.dataset[attr];
     if (t.dataset.tab) {
+      closeStatDetailView();
       side = t.dataset.tab;
       filters.group = '';
       $('#filterGroup').value = '';
@@ -457,6 +501,7 @@
       return;
     }
     if (t.dataset.inviteFilter !== undefined) {
+      closeStatDetailView();
       filters.invited = t.dataset.inviteFilter;
       $('#filterInvited').value = filters.invited;
       $$('[data-invite-filter]').forEach((b) => b.classList.toggle('active', b.dataset.inviteFilter === filters.invited));
@@ -618,12 +663,42 @@
       if (filters.invited === '' && filters.returned === '' && filters.money === '') label = 'Đã bỏ lọc, xem tất cả';
       else label = 'Đang xem: ' + label;
     }
-    renderAll(); saveView();
-    const listEl = $('#guestList');
-    if (listEl) listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // List phẳng hiện ngay dưới thống kê, không chia theo mục.
+    if (stat === 'all') {
+      // 'all' đã xóa hết lọc ở trên, đóng panel để về danh sách theo mục đầy đủ.
+      closeStatDetailView();
+      renderAll(); saveView();
+      toast(label);
+      return;
+    }
+    const wasActive = activeStat === stat;
+    if (wasActive) {
+      // Bấm lại cùng ô: đóng panel, về danh sách theo mục, xóa lọc ô đó.
+      activeStat = null;
+      filters.invited = ''; filters.returned = ''; filters.money = '';
+      $('#filterInvited').value = ''; $('#filterReturned').value = '';
+      const panel = $('#statDetail'); if (panel) panel.hidden = true;
+      const gl = $('#guestList'); if (gl) gl.hidden = false;
+      renderAll(); saveView();
+      toast('Đã bỏ lọc, xem tất cả');
+      return;
+    }
+    activeStat = stat;
+    renderStats(); renderStatDetail(); saveView();
+    const panel = $('#statDetail');
+    if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     toast(label);
   });
+  $('#btnCloseStatDetail').addEventListener('click', () => {
+    activeStat = null;
+    filters.invited = ''; filters.returned = ''; filters.money = '';
+    $('#filterInvited').value = ''; $('#filterReturned').value = '';
+    const panel = $('#statDetail'); if (panel) panel.hidden = true;
+    const gl = $('#guestList'); if (gl) gl.hidden = false;
+    renderAll(); saveView();
+  });
   $('#btnClearFilters').addEventListener('click', () => {
+    closeStatDetailView();
     filters = { search: '', group: '', invited: '', returned: '', money: '' };
     $('#searchInput').value = ''; $('#filterGroup').value = ''; $('#filterInvited').value = ''; $('#filterReturned').value = '';
     renderAll(); saveView();
@@ -650,14 +725,14 @@
     if (!Number.isNaN(p) && p !== null) e.target.value = DB.formatAmount(p);
   });
 
-  $('#searchInput').addEventListener('input', (e) => { filters.search = e.target.value.trim(); renderList(); saveView(); });
-  $('#filterGroup').addEventListener('change', (e) => { filters.group = e.target.value; renderList(); saveView(); });
-  $('#filterInvited').addEventListener('change', (e) => {
+  $('#searchInput').addEventListener('input', (e) => { closeStatDetailView(); filters.search = e.target.value.trim(); renderList(); saveView(); });
+  $('#filterGroup').addEventListener('change', (e) => { closeStatDetailView(); filters.group = e.target.value; renderList(); saveView(); });
+  $('#filterInvited').addEventListener('change', (e) => { closeStatDetailView();
     filters.invited = e.target.value;
     $$('[data-invite-filter]').forEach((b) => b.classList.toggle('active', b.dataset.inviteFilter === filters.invited));
     renderList(); saveView();
   });
-  $('#filterReturned').addEventListener('change', (e) => { filters.returned = e.target.value; renderList(); saveView(); });
+  $('#filterReturned').addEventListener('change', (e) => { closeStatDetailView(); filters.returned = e.target.value; renderList(); saveView(); });
 
   $('#btnAddGuest').addEventListener('click', () => openGuestForm(null));
   $('#btnCancelGuest').addEventListener('click', closeAll);

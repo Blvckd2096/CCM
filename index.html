@@ -48,7 +48,7 @@
       <div class="stat" data-stat="invited" role="button" tabindex="0"><b id="statInvited">0</b><span>Đã mời</span></div>
       <div class="stat" data-stat="notinvited" role="button" tabindex="0"><b id="statNotInvited">0</b><span>Chưa mời</span></div>
       <div class="stat" data-stat="withmoney" role="button" tabindex="0"><b id="statWithMoney">0</b><span>Có tiền mừng</span></div>
-      <div class="stat stat-wide" data-stat="nomoney" role="button" tabindex="0"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
+      <div class="stat" data-stat="nomoney" role="button" tabindex="0"><b id="statNoMoney">0</b><span>Chưa nhập tiền</span></div>
     </div>
     <div class="stats-status">
       <div class="label" style="margin-bottom:6px">Trạng thái mừng</div>
@@ -63,6 +63,18 @@
         <div class="muted small" style="margin-top:4px">Hai danh sách độc lập, không cộng trùng khách.</div>
       </div>
     </div>
+  </section>
+
+  <!-- List phẳng theo ô thống kê: hiện ngay dưới thống kê khi bấm ô, không chia theo mục -->
+  <section id="statDetail" class="card" hidden aria-label="Danh sách theo ô thống kê">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <div>
+        <b id="statDetailTitle">Đang xem</b>
+        <div id="statDetailSub" class="muted small" style="font-size:13px"></div>
+      </div>
+      <button type="button" class="text-btn" id="btnCloseStatDetail" style="white-space:nowrap">Đóng ✕</button>
+    </div>
+    <div id="statDetailList" style="margin-top:8px"></div>
   </section>
 
   <!-- Công cụ -->
@@ -98,7 +110,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 13:35</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 27/10/2026 13:56</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>

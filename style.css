@@ -98,6 +98,11 @@ body[data-side="gai"] .group-alt { background: #FFEAF2; }
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   padding: 4px 2px 6px;
 }
+/* Mục con: thụt vào trong mục cha, nền trắng để nổi trên nền xen kẽ của mục cha. */
+.subgroup { margin: 8px 0 6px 12px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px 2px; }
+.subgroup-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 2px 6px; }
+.subgroup-head h4 { font-size: 14px; margin: 0; }
+.subgroup-head .count { font-size: 12px; color: var(--muted); font-weight: 400; }
 .group-head h3 { font-size: 15px; }
 .group-head .count { font-size: 12px; color: var(--muted); font-weight: 400; }
 .group-actions { display: flex; gap: 4px; }

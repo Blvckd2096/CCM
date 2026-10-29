@@ -36,6 +36,7 @@
   }
   let editingGuest = null; // {id|null, invited, returned}
   let editingGroup = null;
+  let newGroupParentId = null; // khi bấm + Mục con, mục mới sẽ là con của mục này
   let pendingImport = null;
   let confirmCallback = null;
   let saving = false;
@@ -55,11 +56,25 @@
   function closeAll() { $$('.overlay').forEach((o) => o.classList.remove('open')); }
 
   function sideName(s) { return s === 'trai' ? 'Nhà trai' : 'Nhà gái'; }
-  function groupsFor(s) { return groups.filter((g) => g.side === s).sort((a, b) => a.order - b.order); }
+  function groupsFor(s) {
+    // Thứ tự hiển thị có phân cấp: mục gốc theo order, ngay sau mỗi mục gốc là các mục con của nó theo order.
+    const out = [];
+    groups.filter((g) => g.side === s && !g.parentId).sort((a, b) => a.order - b.order).forEach((top) => {
+      out.push(top);
+      groups.filter((g) => g.side === s && g.parentId === top.id).sort((a, b) => a.order - b.order).forEach((c) => out.push(c));
+    });
+    return out;
+  }
+  function topGroupsFor(s) { return groups.filter((g) => g.side === s && !g.parentId).sort((a, b) => a.order - b.order); }
+  function childrenOf(parentId, s) { return groups.filter((g) => g.side === s && g.parentId === parentId).sort((a, b) => a.order - b.order); }
+  function siblingsOf(gr) { return gr.parentId ? childrenOf(gr.parentId, gr.side) : topGroupsFor(gr.side); }
+  function groupParent(gr) { return gr && gr.parentId ? groups.find((x) => x.id === gr.parentId) : null; }
   function guestsFor(s) { return guests.filter((g) => g.side === s); }
   function groupName(id) {
     const g = groups.find((x) => x.id === id);
-    return g ? g.name : 'Khác';
+    if (!g) return 'Khác';
+    const par = groupParent(g);
+    return par ? par.name + ' / ' + g.name : g.name;
   }
 
   const DEFAULT_STATUSES = [
@@ -141,12 +156,17 @@
     const sel = $('#filterGroup');
     const prev = filters.group;
     sel.innerHTML = '<option value="">Tất cả các nhóm</option>' + groupsFor(side).map((g) =>
-      '<option value="' + esc(g.id) + '"' + (g.id === prev ? ' selected' : '') + '>' + esc(g.name) + '</option>').join('');
+      '<option value="' + esc(g.id) + '"' + (g.id === prev ? ' selected' : '') + '>' + esc(groupName(g.id)) + '</option>').join('');
   }
 
   function filteredGuests(groupId) {
     let list = guests.filter((g) => g.side === side && g.groupId === groupId);
-    if (filters.group && filters.group !== groupId) return [];
+    if (filters.group) {
+      const fg = groups.find((x) => x.id === filters.group);
+      const isSelf = groupId === filters.group;
+      const isChildOfFilter = fg && !fg.parentId && (groups.find((x) => x.id === groupId) || {}).parentId === filters.group;
+      if (!isSelf && !isChildOfFilter) return [];
+    }
     if (filters.search) {
       const q = filters.search.toLowerCase();
       list = list.filter((g) => g.name.toLowerCase().includes(q) || (g.note || '').toLowerCase().includes(q));
@@ -187,7 +207,7 @@
           '<button type="button" data-quick="' + esc(g.id) + '" data-amount="1000000">1M</button>' +
         '</div>' +
         '<label>Chuyển nhóm</label><select data-move="' + esc(g.id) + '">' + groupsFor(side).map((gr) =>
-          '<option value="' + esc(gr.id) + '"' + (gr.id === g.groupId ? ' selected' : '') + '>' + esc(gr.name) + '</option>').join('') + '</select>' +
+          '<option value="' + esc(gr.id) + '"' + (gr.id === g.groupId ? ' selected' : '') + '>' + esc(groupName(gr.id)) + '</option>').join('') + '</select>' +
         '<label>Ghi chú</label><textarea data-note="' + esc(g.id) + '" maxlength="1000" placeholder="Ví dụ: Đã gửi thiệp, cần gọi xác nhận…">' + esc(g.note || '') + '</textarea>' +
         '<p class="muted small" style="margin:6px 0 0">Ghi chú lưu tự động khi bạn rời khỏi ô nhập.</p>' +
       '</div>' +
@@ -196,39 +216,66 @@
 
   function renderList() {
     const wrap = $('#guestList');
-    const myGroups = groupsFor(side);
+    const topGroups = topGroupsFor(side);
     let html = '';
     let totalShown = 0;
     let shownGroups = 0;
-    myGroups.forEach((gr, idx) => {
+    const filtering = filters.search || filters.group || filters.invited || filters.returned || filters.money;
+    // Một mục con: header + danh sách khách của riêng nó, thụt vào trong mục cha.
+    function childSectionHTML(gr) {
       const list = filteredGuests(gr.id);
-      // Khi đang lọc/tìm, ẩn nhóm không có khách phù hợp.
-      const filtering = filters.search || filters.group || filters.invited || filters.returned || filters.money;
-      if (filtering && list.length === 0) return;
-      totalShown += list.length;
+      if (filtering && list.length === 0) return { html: '', count: 0 };
+      const allInGroup = guests.filter((g) => g.side === side && g.groupId === gr.id);
+      const invitedInGroup = allInGroup.filter((g) => g.invited).length;
+      const collapsed = collapsedGroups.has(gr.id);
+      let h = '<section class="subgroup" data-group-section="' + esc(gr.id) + '"><div class="subgroup-head"><div><h4>' + esc(gr.name) + '</h4>' +
+        '<div class="count">' + invitedInGroup + '/' + allInGroup.length + ' đã mời' + (collapsed ? ' • Đã thu gọn' : '') + '</div></div>' +
+        '<div class="group-actions">' +
+          '<button type="button" class="mini-btn" data-group-collapse="' + esc(gr.id) + '" aria-label="' + (collapsed ? 'Mở rộng mục' : 'Thu gọn mục') + '">' + (collapsed ? '▸' : '▾') + '</button>' +
+          '<button type="button" class="mini-btn" data-group-up="' + esc(gr.id) + '" aria-label="Đưa mục con lên trên">↑</button>' +
+          '<button type="button" class="mini-btn" data-group-down="' + esc(gr.id) + '" aria-label="Đưa mục con xuống dưới">↓</button>' +
+          '<button type="button" class="mini-btn" data-group-rename="' + esc(gr.id) + '">Đổi tên</button>' +
+          '<button type="button" class="mini-btn danger" data-group-delete="' + esc(gr.id) + '">Xóa mục</button>' +
+        '</div></div>';
+      h += '<div class="subgroup-body"' + (collapsed ? ' hidden' : '') + '>';
+      if (list.length === 0) h += '<p class="muted small" style="padding:0 2px">Chưa có khách trong mục này.</p>';
+      else h += list.map(guestCardHTML).join('');
+      h += '</div></section>';
+      return { html: h, count: list.length };
+    }
+    topGroups.forEach((gr) => {
+      const children = childrenOf(gr.id, side);
+      const directList = filteredGuests(gr.id);
+      const childParts = children.map(childSectionHTML);
+      const childShown = childParts.filter((x) => x.html);
+      if (filtering && directList.length === 0 && childShown.length === 0) return;
+      totalShown += directList.length + childParts.reduce((s, x) => s + x.count, 0);
       const altClass = (shownGroups % 2 === 1) ? ' group-alt' : '';
       shownGroups++;
-      const allInGroup = guests.filter((g) => g.side === side && g.groupId === gr.id);
+      const subtreeIds = [gr.id].concat(children.map((c) => c.id));
+      const allInGroup = guests.filter((g) => g.side === side && subtreeIds.includes(g.groupId));
       const invitedInGroup = allInGroup.filter((g) => g.invited).length;
       const collapsed = collapsedGroups.has(gr.id);
       html += '<section class="group' + altClass + '" data-group-section="' + esc(gr.id) + '"><div class="group-head"><div><h3>' + esc(gr.name) + '</h3>' +
         '<div class="count">' + invitedInGroup + '/' + allInGroup.length + ' đã mời' + (collapsed ? ' • Đã thu gọn' : '') + '</div></div>' +
         '<div class="group-actions">' +
           '<button type="button" class="mini-btn" data-group-collapse="' + esc(gr.id) + '" aria-label="' + (collapsed ? 'Mở rộng mục' : 'Thu gọn mục') + '">' + (collapsed ? '▸' : '▾') + '</button>' +
-          '<button type="button" class="mini-btn" data-group-up="' + esc(gr.id) + '" aria-label="Đưa nhóm lên trên" ' + (idx === 0 ? 'disabled' : '') + '>↑</button>' +
-          '<button type="button" class="mini-btn" data-group-down="' + esc(gr.id) + '" aria-label="Đưa nhóm xuống dưới" ' + (idx === myGroups.length - 1 ? 'disabled' : '') + '>↓</button>' +
+          '<button type="button" class="mini-btn" data-group-up="' + esc(gr.id) + '" aria-label="Đưa nhóm lên trên">↑</button>' +
+          '<button type="button" class="mini-btn" data-group-down="' + esc(gr.id) + '" aria-label="Đưa nhóm xuống dưới">↓</button>' +
           '<button type="button" class="mini-btn" data-group-rename="' + esc(gr.id) + '">Đổi tên</button>' +
           '<button type="button" class="mini-btn danger" data-group-delete="' + esc(gr.id) + '">Xóa mục</button>' +
+          '<button type="button" class="mini-btn" data-group-add-child="' + esc(gr.id) + '">+ Mục con</button>' +
         '</div></div>';
       html += '<div class="group-body"' + (collapsed ? ' hidden' : '') + '>';
-      if (list.length === 0) html += '<p class="muted small" style="padding:0 2px">Chưa có khách trong nhóm này.</p>';
-      else html += list.map(guestCardHTML).join('');
+      if (directList.length > 0) html += directList.map(guestCardHTML).join('');
+      else if (children.length === 0) html += '<p class="muted small" style="padding:0 2px">Chưa có khách trong nhóm này.</p>';
+      childShown.forEach((x) => { html += x.html; });
       html += '</div></section>';
     });
     // Nút Thêm mục mới ở cuối danh sách cho dễ thấy, ngoài nút ở thanh công cụ.
     html += '<div class="card add-group-card"><button type="button" class="add-group-bottom" data-add-group>＋ Thêm mục mới</button><p class="muted small" style="text-align:center;margin:6px 0 0">Tạo thêm một mục khách mời cho bên đang chọn.</p></div>';
     wrap.innerHTML = html;
-    $('#emptyState').hidden = !(myGroups.length === 0 || (totalShown === 0 && !filters.search && !filters.group && !filters.invited && !filters.returned && !filters.money && guestsFor(side).length === 0));
+    $('#emptyState').hidden = !(topGroups.length === 0 || (totalShown === 0 && !filters.search && !filters.group && !filters.invited && !filters.returned && !filters.money && guestsFor(side).length === 0));
     if (totalShown === 0 && guestsFor(side).length > 0) {
       wrap.innerHTML = '<div class="card empty"><b>Không tìm thấy khách phù hợp</b><span>Thử đổi từ khóa hoặc bộ lọc.</span></div>';
     }
@@ -272,6 +319,46 @@
     else if (stat.startsWith('status:')) list = list.filter((g) => g.returned === stat.slice(7));
     else return [];
     return list.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
+  }
+  function getExportGuests() {
+    // Xuất đúng danh sách đang xem: nếu đang mở list phẳng thống kê thì xuất list đó,
+    // nếu không thì xuất danh sách của bên đang chọn sau khi áp bộ lọc hiện tại (tìm, nhóm, mời, mừng, tiền), xếp A → Z.
+    if (activeStat) return getStatGuests(activeStat);
+    let list = guestsFor(side);
+    if (filters.group) {
+      const fg = groups.find((x) => x.id === filters.group);
+      list = list.filter((g) => g.groupId === filters.group || (fg && !fg.parentId && (groups.find((x) => x.id === g.groupId) || {}).parentId === filters.group));
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      list = list.filter((g) => g.name.toLowerCase().includes(q) || (g.note || '').toLowerCase().includes(q));
+    }
+    if (filters.invited === 'da') list = list.filter((g) => g.invited);
+    if (filters.invited === 'chua') list = list.filter((g) => !g.invited);
+    if (filters.money === 'co') list = list.filter((g) => g.amount !== null && g.amount !== undefined);
+    if (filters.money === 'chua') list = list.filter((g) => g.amount === null || g.amount === undefined);
+    if (filters.returned) list = list.filter((g) => g.returned === filters.returned);
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
+  }
+  function buildExportText(list) {
+    const invited = list.filter((g) => g.invited).length;
+    const scope = activeStat ? 'Đang xem: ' + statLabelFor(activeStat) : (filters.group ? 'Nhóm: ' + groupName(filters.group) : 'Tất cả các nhóm');
+    const lines = [];
+    lines.push('Danh sách khách mời - ' + sideName(side));
+    lines.push(scope);
+    list.forEach((g, i) => {
+      lines.push((i + 1) + '. ' + g.name + ' - ' + groupName(g.groupId) + ' - ' + (g.invited ? 'Đã mời' : 'Chưa mời'));
+    });
+    lines.push('Tổng: ' + list.length + ' khách (' + invited + ' đã mời, ' + (list.length - invited) + ' chưa mời)');
+    return lines.join('\n');
+  }
+  function openTextExport() {
+    const list = getExportGuests();
+    if (list.length === 0) { toast('Không có khách nào trong danh sách đang xem.'); return; }
+    $('#textExportContent').value = buildExportText(list);
+    $('#textExportSummary').textContent = list.length + ' khách • chỉ gồm tên, nhóm và trạng thái mời, xếp A → Z.';
+    openOverlay('#textExportModal');
+    setTimeout(() => { const ta = $('#textExportContent'); ta.focus(); ta.select(); }, 60);
   }
   function renderStatDetail() {
     const panel = $('#statDetail');
@@ -394,7 +481,7 @@
     // Sửa thì giữ nhóm của khách đó; thêm mới thì lấy nhóm lần nhập trước, nếu nhóm đó không còn thì về nhóm đầu tiên.
     let defaultGroupId = guest ? guest.groupId : getLastGroupId(side);
     if (!myGroups.find((gr) => gr.id === defaultGroupId)) defaultGroupId = myGroups[0] ? myGroups[0].id : '';
-    sel.innerHTML = myGroups.map((gr) => '<option value="' + esc(gr.id) + '"' + (gr.id === defaultGroupId ? ' selected' : '') + '>' + esc(gr.name) + '</option>').join('');
+    sel.innerHTML = myGroups.map((gr) => '<option value="' + esc(gr.id) + '"' + (gr.id === defaultGroupId ? ' selected' : '') + '>' + esc(groupName(gr.id)) + '</option>').join('');
     $('#fAmount').value = guest && guest.amount !== null && guest.amount !== undefined ? DB.formatAmount(guest.amount) : '';
     $('#fNote').value = guest ? (guest.note || '') : '';
     $('#fPeople').value = editingGuest.peopleCount || 1;
@@ -468,7 +555,9 @@
     return DB.ensureDefaultGroups('trai')
       .then(() => DB.ensureDefaultGroups('gai'))
       .then(() => Promise.all([DB.getAllGuests(), DB.getAllGroups()]))
-      .then(([gs, grs]) => { guests = gs || []; groups = grs || []; return normalizeOrphans(); })
+      .then(([gs, grs]) => { guests = gs || []; groups = grs || []; // Chuẩn hóa mục con cũ/lỗi: mục cha không tồn tại, khác bên, là mục con, hoặc tự trỏ chính mình thì về mục gốc.
+        groups.forEach((g) => { if (g.parentId) { const par = groups.find((x) => x.id === g.parentId); if (!par || par.side !== g.side || par.parentId || par.id === g.id) g.parentId = null; } });
+        return normalizeOrphans(); })
       .then(() => {
         renderAll();
         // Khôi phục bộ lọc đã lưu vào ô nhập, rồi trở lại vị trí cuộn lần trước.
@@ -553,7 +642,8 @@
     }
     if (id('groupUp') || id('groupDown')) {
       const gid = id('groupUp') || id('groupDown');
-      const list = groupsFor(side);
+      const gr0 = groups.find((x) => x.id === gid);
+      const list = gr0 ? siblingsOf(gr0) : [];
       const idx = list.findIndex((x) => x.id === gid);
       const swapIdx = id('groupUp') ? idx - 1 : idx + 1;
       if (idx < 0 || swapIdx < 0 || swapIdx >= list.length) return;
@@ -565,7 +655,7 @@
     if (id('groupCollapse')) {
       const gid = id('groupCollapse');
       const section = document.querySelector('[data-group-section="' + CSS.escape(gid) + '"]');
-      const body = section ? section.querySelector('.group-body') : null;
+      const body = section ? Array.from(section.children).find((c) => c.classList.contains('group-body') || c.classList.contains('subgroup-body')) : null;
       if (body) {
         body.hidden = !body.hidden;
         const nowCollapsed = body.hidden;
@@ -590,8 +680,18 @@
       return;
     }
     if (t.dataset.addGroup !== undefined) {
-      editingGroup = null;
+      editingGroup = null; newGroupParentId = null;
       $('#groupModalTitle').textContent = 'Thêm mục mới';
+      $('#gName').value = '';
+      openOverlay('#groupModal');
+      setTimeout(() => $('#gName').focus(), 60);
+      return;
+    }
+    if (t.dataset.groupAddChild !== undefined) {
+      const parent = groups.find((x) => x.id === t.dataset.groupAddChild);
+      if (!parent) return;
+      editingGroup = null; newGroupParentId = parent.id;
+      $('#groupModalTitle').textContent = 'Thêm mục con cho “' + parent.name + '”';
       $('#gName').value = '';
       openOverlay('#groupModal');
       setTimeout(() => $('#gName').focus(), 60);
@@ -610,25 +710,36 @@
     if (id('groupDelete')) {
       const gr = groups.find((x) => x.id === id('groupDelete'));
       if (!gr) return;
+      const childGroups = childrenOf(gr.id, side);
       const inGroup = guests.filter((x) => x.side === side && x.groupId === gr.id);
       const others = groupsFor(side).filter((x) => x.id !== gr.id);
       const removeGroupLocally = () => {
         groups = groups.filter((x) => x.id !== gr.id);
         collapsedGroups.delete(gr.id); saveCollapsedGroups();
       };
-      if (inGroup.length === 0) {
-        askConfirm('Xóa mục?', 'Xóa mục “' + gr.name + '” không? Mục này đang trống.', 'Xóa mục', '', () => {
+      // Xóa mục cha: các mục con không bị xóa, chúng trở thành mục gốc.
+      const promoteChildren = () => {
+        if (childGroups.length === 0) return Promise.resolve();
+        const topMax = topGroupsFor(side).reduce((m, g) => Math.max(m, g.order), -1);
+        return Promise.all(childGroups.map((c, i) => { c.parentId = null; c.order = topMax + 1 + i; return DB.saveGroup(c); }));
+      };
+      if (inGroup.length === 0 && childGroups.length === 0) {
+        askConfirm('Xóa mục?', 'Xóa mục “' + groupName(gr.id) + '” không? Mục này đang trống.', 'Xóa mục', '', () => {
           DB.deleteGroup(gr.id).then(() => { removeGroupLocally(); renderAll(); toast('Đã xóa mục.'); });
+        });
+      } else if (inGroup.length === 0 && childGroups.length > 0) {
+        askConfirm('Xóa mục cha?', 'Mục “' + gr.name + '” đang có ' + childGroups.length + ' mục con. Các mục con sẽ trở thành mục gốc, không bị xóa cùng. Bạn có chắc muốn xóa mục cha?', 'Xóa mục cha', '', () => {
+          promoteChildren().then(() => DB.deleteGroup(gr.id)).then(() => load()).then(() => toast('Đã xóa mục cha, các mục con đã thành mục gốc.'));
         });
       } else if (others.length === 0) {
         toast('Không thể xóa mục cuối cùng khi vẫn còn khách. Hãy chuyển khách sang mục mới trước.');
       } else {
-        const opts = others.map((o) => '<option value="' + esc(o.id) + '">' + esc(o.name) + '</option>').join('');
-        askConfirm('Xóa mục có khách?', 'Mục “' + gr.name + '” đang có ' + inGroup.length + ' khách. Chọn mục để chuyển toàn bộ khách sang trước khi xóa:', 'Chuyển khách và xóa mục',
+        const opts = others.map((o) => '<option value="' + esc(o.id) + '">' + esc(groupName(o.id)) + '</option>').join('');
+        askConfirm('Xóa mục có khách?', 'Mục “' + groupName(gr.id) + '” đang có ' + inGroup.length + ' khách. Chọn mục để chuyển toàn bộ khách sang trước khi xóa:', 'Chuyển khách và xóa mục',
           '<label style="display:block;font-size:14px;font-weight:600;margin:10px 0 5px">Chuyển sang mục</label><select id="deleteGroupTarget" style="width:100%;min-height:46px;border:1px solid #e5e0da;border-radius:11px;padding:10px">' + opts + '</select>', () => {
             const target = $('#deleteGroupTarget').value;
             const moves = inGroup.map((g) => { g.groupId = target; g.updatedAt = DB.nowISO(); return DB.saveGuest(g); });
-            Promise.all(moves).then(() => DB.deleteGroup(gr.id)).then(() => { collapsedGroups.delete(gr.id); saveCollapsedGroups(); return load(); }).then(() => toast('Đã chuyển khách và xóa mục.'));
+            Promise.all(moves).then(() => promoteChildren()).then(() => DB.deleteGroup(gr.id)).then(() => { collapsedGroups.delete(gr.id); saveCollapsedGroups(); return load(); }).then(() => toast('Đã chuyển khách và xóa mục.'));
           });
       }
       return;
@@ -699,6 +810,30 @@
     const panel = $('#statDetail'); if (panel) panel.hidden = true;
     const gl = $('#guestList'); if (gl) gl.hidden = false;
     renderAll(); saveView();
+  });
+  $('#btnExportText').addEventListener('click', openTextExport);
+  const btnExportStat = $('#btnExportTextStat');
+  if (btnExportStat) btnExportStat.addEventListener('click', openTextExport);
+  $('#btnCloseTextExport').addEventListener('click', closeAll);
+  $('#btnCopyTextExport').addEventListener('click', () => {
+    const ta = $('#textExportContent');
+    ta.focus(); ta.select();
+    const done = () => toast('Đã sao chép danh sách.');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(done).catch(() => { try { document.execCommand('copy'); done(); } catch (e) { toast('Không sao chép được, hãy chọn và sao chép thủ công.'); } });
+    } else {
+      try { document.execCommand('copy'); done(); } catch (e) { toast('Không sao chép được, hãy chọn và sao chép thủ công.'); }
+    }
+  });
+  $('#btnDownloadTextExport').addEventListener('click', () => {
+    const blob = new Blob([$('#textExportContent').value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cuoi-chung-minh-danh-sach-' + side + '-' + new Date().toISOString().slice(0, 10) + '.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Đã tải file Text.');
   });
   $('#btnClearFilters').addEventListener('click', () => {
     closeStatDetailView();
@@ -773,7 +908,7 @@
   });
 
   $('#btnAddGroup').addEventListener('click', () => {
-    editingGroup = null;
+    editingGroup = null; newGroupParentId = null;
     $('#groupModalTitle').textContent = 'Thêm mục mới';
     $('#gName').value = '';
     openOverlay('#groupModal');
@@ -799,9 +934,12 @@
       editingGroup.name = name;
       DB.saveGroup(editingGroup).then(() => { closeAll(); renderAll(); toast('Đã đổi tên mục.'); });
     } else {
-      const maxOrder = groupsFor(side).reduce((m, g) => Math.max(m, g.order), -1);
+      const parentId = newGroupParentId || null;
+      const siblings = parentId ? childrenOf(parentId, side) : topGroupsFor(side);
+      const maxOrder = siblings.reduce((m, g) => Math.max(m, g.order), -1);
       const gr = { id: DB.uid(), side, name, order: maxOrder + 1, createdAt: DB.nowISO() };
-      DB.saveGroup(gr).then(() => { groups.push(gr); closeAll(); renderAll(); toast('Đã thêm mục mới.'); });
+      if (parentId) gr.parentId = parentId;
+      DB.saveGroup(gr).then(() => { groups.push(gr); newGroupParentId = null; closeAll(); renderAll(); toast(parentId ? 'Đã thêm mục con.' : 'Đã thêm mục mới.'); });
     }
   });
 
@@ -861,11 +999,17 @@
     });
     if (changed) saveCustomStatuses();
   }
+  function sanitizeImportedGroup(gr, allGroups) {
+    if (!gr.parentId || gr.parentId === gr.id) return null;
+    const par = allGroups.find((x) => x.id === gr.parentId);
+    if (!par || par.side !== gr.side || par.parentId) return null;
+    return gr.parentId;
+  }
   $('#btnImportMerge').addEventListener('click', () => {
     if (!pendingImport) return;
     restoreCustomStatusesFromImport(pendingImport);
     const ops = [];
-    pendingImport.groups.forEach((gr) => { if (gr.id && gr.name) ops.push(DB.saveGroup(gr)); });
+    pendingImport.groups.forEach((gr) => { if (gr.id && gr.name) { const clean = Object.assign({}, gr); clean.parentId = sanitizeImportedGroup(gr, groups.concat(pendingImport.groups)); if (!clean.parentId) delete clean.parentId; ops.push(DB.saveGroup(clean)); } });
     pendingImport.guests.forEach((g) => {
       const rec = {
         id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(),
@@ -886,7 +1030,7 @@
         restoreCustomStatusesFromImport(pendingImport);
         Promise.all([DB.clear('guests'), DB.clear('groups')]).then(() => {
           const ops = [];
-          pendingImport.groups.forEach((gr) => ops.push(DB.saveGroup(gr)));
+          pendingImport.groups.forEach((gr) => { const clean = Object.assign({}, gr); clean.parentId = sanitizeImportedGroup(gr, pendingImport.groups); if (!clean.parentId) delete clean.parentId; ops.push(DB.saveGroup(clean)); });
           pendingImport.guests.forEach((g) => ops.push(DB.saveGuest({
             id: g.id || DB.uid(), side: g.side, name: String(g.name).trim(), groupId: g.groupId || '',
             invited: !!g.invited, amount: (g.amount === null || g.amount === undefined) ? null : g.amount,

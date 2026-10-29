@@ -111,7 +111,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 29/10/2026 19:07</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 29/10/2026 21:30</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -263,13 +263,15 @@
 
 <div class="overlay" id="settingsModal" role="dialog" aria-modal="true" aria-label="Cài đặt">
   <div class="sheet">
-    <h2>Cài đặt</h2>
+    <div class="settings-head">
+      <h2>Cài đặt</h2>
+      <button type="button" id="btnChiThu" class="chi-thu-icon-btn" aria-label="Tính tổng Chi Thu đám cưới" title="Tính tổng Chi / Thu đám cưới"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#477FA5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></button>
+    </div>
     <div class="warning">Dữ liệu đang lưu cục bộ trên máy này. Hãy sao lưu khi đổi máy hoặc cài lại trình duyệt. Dữ liệu không tự đồng bộ giữa 2 iPhone.</div>
     <div class="settings-list" style="margin-top:12px">
       <button type="button" id="btnExport">Xuất sao lưu (JSON)<small>Gồm cả nhà trai và nhà gái, tất cả nhóm và trạng thái.</small></button>
       <button type="button" id="btnImport">Nhập sao lưu (JSON)<small>Chọn file đã xuất trước đó. Sẽ hỏi gộp hay thay thế.</small></button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
-      <button type="button" id="btnChiThu">Tính tổng Chi / Thu đám cưới<small>Mở tab tính tổng tiền chi / thu chuẩn bị đám cưới, có ghi chú, thêm / xóa mục.</small></button>
       <button type="button" id="btnMusic" disabled>Nhạc nền — Sắp ra mắt<small>Chưa triển khai, không tự phát nhạc.</small></button>
       <button type="button" id="btnBg" disabled>Ảnh nền — Sắp ra mắt<small>Chưa triển khai, giao diện hiện tại ưu tiên dễ đọc.</small></button>
     </div>

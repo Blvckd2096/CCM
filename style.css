@@ -233,6 +233,16 @@ body[data-side="gai"] .group-alt { background: #FFEAF2; }
   padding: 9px; min-height: 35px; margin-bottom: 6px; font-size: 14px;
 }
 .settings-list button small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+/* Cài đặt: nút Chi/Thu thu gọn thành icon tròn đồng tiền ở góc phải trên, màu xanh Nhà trai cố định như bảng Chi/Thu. */
+.settings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-head h2 { margin: 0; }
+.chi-thu-icon-btn {
+  width: 44px; height: 44px; min-width: 44px; border-radius: 50%;
+  border: 2px solid #477FA5; background: #fff; color: #477FA5;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  box-shadow: 0 2px 8px rgba(71,127,165,0.25);
+  transform: translateY(-6px);
+}
 .warning { background: #fff7e0; border: 1px solid #e8d9a0; border-radius: 11px; padding: 9px 10px; font-size: 13px; }
 @media (min-width: 700px) {
   .overlay { align-items: center; padding: 20px; }

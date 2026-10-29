@@ -266,3 +266,4 @@ body[data-side="gai"] .group-alt { background: #FFEAF2; }
   border-radius: 0; padding-top: calc(14px + env(safe-area-inset-top));
   padding-bottom: calc(14px + env(safe-area-inset-bottom));
 }
+#chiThuModal .quick-row button { background: #E8F4FC; }

@@ -111,7 +111,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 29/10/2026 18:28</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 29/10/2026 19:07</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -150,6 +150,12 @@
       <input type="text" id="ctName" required maxlength="80" placeholder="Ví dụ: Thuê rạp, Đặt cỗ, Tiền mừng" autocomplete="off">
       <label for="ctAmount">Số tiền *</label>
       <input type="text" id="ctAmount" required inputmode="decimal" placeholder="Ví dụ: 5.000.000" autocomplete="off">
+      <div class="quick-row" style="margin-top:8px">
+        <button type="button" data-ct-quick="500000">500K</button>
+        <button type="button" data-ct-quick="1000000">1M</button>
+        <button type="button" data-ct-append="000">000</button>
+      </div>
+      <div class="hint">500K / 1M đặt luôn số tiền đó. 000 thêm 3 số 0 vào cuối số đang nhập, ví dụ 5 thành 5.000, bấm nữa thành 5.000.000.</div>
       <label>Loại</label>
       <div class="status-row">
         <button type="button" class="seg active" id="chiThuSegChi">Chi</button>
@@ -157,7 +163,7 @@
       </div>
       <label for="ctNote">Ghi chú</label>
       <textarea id="ctNote" maxlength="500" placeholder="Ví dụ: Đã đặt cọc 2 triệu, còn lại trả sau…"></textarea>
-      <div class="btn-row"><button type="submit" class="btn-primary">+ Thêm mục</button></div>
+      <div class="btn-row"><button type="button" class="btn-secondary" id="btnCancelChiThuEdit" hidden>Hủy sửa</button><button type="submit" class="btn-primary" id="chiThuSubmitBtn">+ Thêm mục</button></div>
       <p id="chiThuFormError" class="muted small" style="color:#a33333" hidden></p>
     </form>
     <div id="chiThuList" style="margin-top:12px"></div>

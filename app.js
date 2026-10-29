@@ -39,6 +39,7 @@
   let newGroupParentId = null; // khi bấm + Mục con, mục mới sẽ là con của mục này
   let pendingImport = null;
   let confirmCallback = null;
+  let confirmCancelCallback = null;
   let saving = false;
 
   function esc(s) {
@@ -505,12 +506,13 @@
   }
 
   // ---------- Xác nhận ----------
-  function askConfirm(title, text, okLabel, extraHTML, cb) {
+  function askConfirm(title, text, okLabel, extraHTML, cb, onCancel) {
     $('#confirmTitle').textContent = title;
     $('#confirmText').textContent = text;
     $('#confirmExtra').innerHTML = extraHTML || '';
     $('#btnConfirmOk').textContent = okLabel || 'Xác nhận xóa';
     confirmCallback = cb;
+    confirmCancelCallback = onCancel || null;
     openOverlay('#confirmModal');
   }
 
@@ -943,10 +945,10 @@
     }
   });
 
-  $('#btnConfirmCancel').addEventListener('click', () => { confirmCallback = null; closeAll(); });
-  $('#btnConfirmOk').addEventListener('click', () => { const cb = confirmCallback; confirmCallback = null; closeAll(); if (cb) cb(); });
+  $('#btnConfirmCancel').addEventListener('click', () => { const cb = confirmCancelCallback; confirmCallback = null; confirmCancelCallback = null; closeAll(); if (cb) cb(); });
+  $('#btnConfirmOk').addEventListener('click', () => { const cb = confirmCallback; confirmCallback = null; confirmCancelCallback = null; closeAll(); if (cb) cb(); });
 
-  $$('.overlay').forEach((o) => o.addEventListener('click', (e) => { if (e.target === o) closeAll(); }));
+  $$('.overlay').forEach((o) => o.addEventListener('click', (e) => { if (e.target === o) o.classList.remove('open'); }));
 
   $('#btnToggleCombined').addEventListener('click', () => {
     const box = $('#combinedBox');
@@ -996,17 +998,38 @@
     const sorted = visible.slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
     listEl.innerHTML = sorted.map((x) => '<div class="chi-thu-item"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>' + esc(x.name) + '</b><div class="muted small">' + (x.kind === 'thu' ? 'Thu' : 'Chi') + (x.note ? ' • ' + esc(x.note) : '') + '</div></div>' +
       '<div style="text-align:right;white-space:nowrap"><div class="' + (x.kind === 'thu' ? 'chi-thu-amount-thu' : 'chi-thu-amount-chi') + '">' + (x.kind === 'thu' ? '+' : '-') + DB.formatAmount(x.amount) + ' VNĐ</div>' +
-      '<button type="button" class="text-btn danger" data-chi-thu-delete="' + esc(x.id) + '">Xóa</button></div></div></div>').join('');
+      '<button type="button" class="text-btn" data-chi-thu-edit="' + esc(x.id) + '">Sửa</button> <button type="button" class="text-btn danger" data-chi-thu-delete="' + esc(x.id) + '">Xóa</button></div></div></div>').join('');
   }
   function updateChiThuSegments() {
     $('#chiThuSegChi').classList.toggle('active', chiThuKind === 'chi');
     $('#chiThuSegThu').classList.toggle('active', chiThuKind === 'thu');
   }
+  let chiThuEditingId = null;
+  function cancelChiThuEdit() {
+    chiThuEditingId = null;
+    $('#ctName').value = ''; $('#ctAmount').value = ''; $('#ctNote').value = '';
+    chiThuKind = 'chi'; updateChiThuSegments();
+    const sb = $('#chiThuSubmitBtn'); if (sb) sb.textContent = '+ Thêm mục';
+    const cb = $('#btnCancelChiThuEdit'); if (cb) cb.hidden = true;
+    const err = $('#chiThuFormError'); if (err) err.hidden = true;
+  }
+  function startChiThuEdit(item) {
+    chiThuEditingId = item.id;
+    $('#ctName').value = item.name;
+    $('#ctAmount').value = DB.formatAmount(item.amount);
+    $('#ctNote').value = item.note || '';
+    chiThuKind = item.kind; updateChiThuSegments();
+    const sb = $('#chiThuSubmitBtn'); if (sb) sb.textContent = 'Lưu thay đổi';
+    const cb = $('#btnCancelChiThuEdit'); if (cb) cb.hidden = false;
+    const err = $('#chiThuFormError'); if (err) err.hidden = true;
+    const form = $('#chiThuForm'); if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#ctName').focus();
+  }
 
   // Cài đặt / sao lưu
   $('#btnSettings').addEventListener('click', () => openOverlay('#settingsModal'));
   $('#btnCloseSettings').addEventListener('click', closeAll);
-  $('#btnChiThu').addEventListener('click', () => { closeAll(); renderChiThu(); updateChiThuSegments(); openOverlay('#chiThuModal'); });
+  $('#btnChiThu').addEventListener('click', () => { closeAll(); cancelChiThuEdit(); renderChiThu(); updateChiThuSegments(); openOverlay('#chiThuModal'); });
   $('#btnCloseChiThu').addEventListener('click', closeAll);
   $('#btnCloseChiThuTop').addEventListener('click', closeAll);
   $('#chiThuSegChi').addEventListener('click', () => { chiThuKind = 'chi'; updateChiThuSegments(); });
@@ -1014,6 +1037,16 @@
   $('#chiThuStatThu').addEventListener('click', () => { chiThuFilter = (chiThuFilter === 'thu' ? null : 'thu'); renderChiThu(); });
   $('#chiThuStatChi').addEventListener('click', () => { chiThuFilter = (chiThuFilter === 'chi' ? null : 'chi'); renderChiThu(); });
   $('#chiThuStatAll').addEventListener('click', () => { chiThuFilter = null; renderChiThu(); });
+  $$('#chiThuForm .quick-row button').forEach((b) => b.addEventListener('click', () => {
+    const input = $('#ctAmount');
+    if (b.dataset.ctQuick) { input.value = DB.formatAmount(Number(b.dataset.ctQuick)); }
+    else if (b.dataset.ctAppend) {
+      const digits = input.value.replace(/\D/g, '');
+      if (digits) input.value = DB.formatAmount(Number(digits + '000'));
+    }
+    input.focus();
+  }));
+  $('#btnCancelChiThuEdit').addEventListener('click', cancelChiThuEdit);
   $('#chiThuForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = $('#ctName').value.trim();
@@ -1022,21 +1055,37 @@
     if (!name) { err.textContent = 'Tên mục là bắt buộc.'; err.hidden = false; $('#ctName').focus(); return; }
     if (Number.isNaN(amount) || amount === null) { err.textContent = 'Số tiền không hợp lệ. Chỉ nhập số.'; err.hidden = false; return; }
     err.hidden = true;
-    chiThuItems.push({ id: DB.uid(), kind: chiThuKind, name, amount, note: $('#ctNote').value.trim(), createdAt: DB.nowISO() });
-    chiThuFilter = null;
-    saveChiThu(); renderChiThu();
-    $('#ctName').value = ''; $('#ctAmount').value = ''; $('#ctNote').value = '';
-    toast('Đã thêm mục ' + (chiThuKind === 'thu' ? 'thu' : 'chi') + '.');
+    if (chiThuEditingId) {
+      const item = chiThuItems.find((x) => x.id === chiThuEditingId);
+      if (item) { item.name = name; item.amount = amount; item.note = $('#ctNote').value.trim(); item.kind = chiThuKind; }
+      chiThuFilter = null;
+      saveChiThu(); renderChiThu(); cancelChiThuEdit();
+      toast('Đã lưu thay đổi.');
+    } else {
+      chiThuItems.push({ id: DB.uid(), kind: chiThuKind, name, amount, note: $('#ctNote').value.trim(), createdAt: DB.nowISO() });
+      chiThuFilter = null;
+      saveChiThu(); renderChiThu();
+      $('#ctName').value = ''; $('#ctAmount').value = ''; $('#ctNote').value = '';
+      toast('Đã thêm mục ' + (chiThuKind === 'thu' ? 'thu' : 'chi') + '.');
+    }
   });
   $('#chiThuList').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('[data-chi-thu-edit]');
+    if (editBtn) {
+      const item = chiThuItems.find((x) => x.id === editBtn.dataset.chiThuEdit);
+      if (item) startChiThuEdit(item);
+      return;
+    }
     const btn = e.target.closest('[data-chi-thu-delete]');
     if (!btn) return;
     const item = chiThuItems.find((x) => x.id === btn.dataset.chiThuDelete);
     if (!item) return;
+    const reopenChiThu = () => { renderChiThu(); openOverlay('#chiThuModal'); };
     askConfirm('Xóa mục?', 'Xóa mục “' + item.name + '” (' + DB.formatAmount(item.amount) + ' VNĐ) không?', 'Xóa mục', '', () => {
       chiThuItems = chiThuItems.filter((x) => x.id !== item.id);
-      saveChiThu(); renderChiThu(); toast('Đã xóa mục.');
-    });
+      if (chiThuEditingId === item.id) cancelChiThuEdit();
+      saveChiThu(); reopenChiThu(); toast('Đã xóa mục.');
+    }, reopenChiThu);
   });
   $('#btnExport').addEventListener('click', () => {
     const data = { app: 'cuoi-chung-minh', version: 1, exportedAt: new Date().toISOString(), groups, guests, customStatuses };

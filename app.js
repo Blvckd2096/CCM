@@ -954,9 +954,90 @@
     $('#btnToggleCombined').textContent = box.hidden ? 'Xem tổng hợp 2 bên ▾' : 'Ẩn tổng hợp 2 bên ▴';
   });
 
+  // ---------- Chi / Thu đám cưới: mở từ Cài đặt, lưu LocalStorage, chung cho cả đám cưới ----------
+  let chiThuItems = [];
+  try {
+    const savedCT = JSON.parse(localStorage.getItem('cuoi_chi_thu') || '[]');
+    if (Array.isArray(savedCT)) chiThuItems = savedCT.filter((x) => x && typeof x.name === 'string' && Number.isInteger(x.amount) && x.amount >= 0 && (x.kind === 'chi' || x.kind === 'thu'));
+  } catch (e) { chiThuItems = []; }
+  let chiThuKind = 'chi';
+  let chiThuFilter = null; // null = tất cả, 'thu' = chỉ thu, 'chi' = chỉ chi (bấm vào ô Tổng thu / Tổng chi)
+  function saveChiThu() { try { localStorage.setItem('cuoi_chi_thu', JSON.stringify(chiThuItems)); } catch (e) {} }
+  function renderChiThu() {
+    const thu = chiThuItems.filter((x) => x.kind === 'thu').reduce((s, x) => s + x.amount, 0);
+    const chi = chiThuItems.filter((x) => x.kind === 'chi').reduce((s, x) => s + x.amount, 0);
+    $('#chiThuTotalThu').textContent = DB.formatAmount(thu) + ' VNĐ';
+    $('#chiThuTotalChi').textContent = DB.formatAmount(chi) + ' VNĐ';
+    const remainEl = $('#chiThuRemain');
+    remainEl.textContent = DB.formatAmount(thu - chi) + ' VNĐ';
+    remainEl.style.color = (thu - chi) < 0 ? '#a33333' : '#2f5f7d';
+    const listEl = $('#chiThuList');
+    if (chiThuItems.length === 0) {
+      const note0 = $('#chiThuFilterNote'); if (note0) note0.hidden = true;
+      listEl.innerHTML = '<div class="card empty"><b>Chưa có mục chi / thu nào</b><span>Thêm mục đầu tiên ở trên.</span></div>';
+      return;
+    }
+    const noteEl = $('#chiThuFilterNote');
+    if (noteEl) {
+      if (chiThuFilter) {
+        const n = chiThuItems.filter((x) => x.kind === chiThuFilter).length;
+        noteEl.textContent = 'Đang xem: ' + (chiThuFilter === 'thu' ? 'Thu' : 'Chi') + ' (' + n + ' mục) — bấm lại vào ô đó hoặc bấm Còn lại để xem tất cả.';
+        noteEl.hidden = false;
+      } else noteEl.hidden = true;
+    }
+    const statThu = $('#chiThuStatThu'); if (statThu) statThu.classList.toggle('active', chiThuFilter === 'thu');
+    const statChi = $('#chiThuStatChi'); if (statChi) statChi.classList.toggle('active', chiThuFilter === 'chi');
+    const statAll = $('#chiThuStatAll'); if (statAll) statAll.classList.toggle('active', chiThuFilter === null);
+    const visible = chiThuFilter ? chiThuItems.filter((x) => x.kind === chiThuFilter) : chiThuItems;
+    if (visible.length === 0) {
+      listEl.innerHTML = '<div class="card empty"><b>Không có mục ' + (chiThuFilter === 'thu' ? 'thu' : 'chi') + ' nào</b><span>Bấm Còn lại để xem tất cả.</span></div>';
+      return;
+    }
+    const sorted = visible.slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    listEl.innerHTML = sorted.map((x) => '<div class="chi-thu-item"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>' + esc(x.name) + '</b><div class="muted small">' + (x.kind === 'thu' ? 'Thu' : 'Chi') + (x.note ? ' • ' + esc(x.note) : '') + '</div></div>' +
+      '<div style="text-align:right;white-space:nowrap"><div class="' + (x.kind === 'thu' ? 'chi-thu-amount-thu' : 'chi-thu-amount-chi') + '">' + (x.kind === 'thu' ? '+' : '-') + DB.formatAmount(x.amount) + ' VNĐ</div>' +
+      '<button type="button" class="text-btn danger" data-chi-thu-delete="' + esc(x.id) + '">Xóa</button></div></div></div>').join('');
+  }
+  function updateChiThuSegments() {
+    $('#chiThuSegChi').classList.toggle('active', chiThuKind === 'chi');
+    $('#chiThuSegThu').classList.toggle('active', chiThuKind === 'thu');
+  }
+
   // Cài đặt / sao lưu
   $('#btnSettings').addEventListener('click', () => openOverlay('#settingsModal'));
   $('#btnCloseSettings').addEventListener('click', closeAll);
+  $('#btnChiThu').addEventListener('click', () => { closeAll(); renderChiThu(); updateChiThuSegments(); openOverlay('#chiThuModal'); });
+  $('#btnCloseChiThu').addEventListener('click', closeAll);
+  $('#btnCloseChiThuTop').addEventListener('click', closeAll);
+  $('#chiThuSegChi').addEventListener('click', () => { chiThuKind = 'chi'; updateChiThuSegments(); });
+  $('#chiThuSegThu').addEventListener('click', () => { chiThuKind = 'thu'; updateChiThuSegments(); });
+  $('#chiThuStatThu').addEventListener('click', () => { chiThuFilter = (chiThuFilter === 'thu' ? null : 'thu'); renderChiThu(); });
+  $('#chiThuStatChi').addEventListener('click', () => { chiThuFilter = (chiThuFilter === 'chi' ? null : 'chi'); renderChiThu(); });
+  $('#chiThuStatAll').addEventListener('click', () => { chiThuFilter = null; renderChiThu(); });
+  $('#chiThuForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('#ctName').value.trim();
+    const amount = DB.parseAmount($('#ctAmount').value);
+    const err = $('#chiThuFormError');
+    if (!name) { err.textContent = 'Tên mục là bắt buộc.'; err.hidden = false; $('#ctName').focus(); return; }
+    if (Number.isNaN(amount) || amount === null) { err.textContent = 'Số tiền không hợp lệ. Chỉ nhập số.'; err.hidden = false; return; }
+    err.hidden = true;
+    chiThuItems.push({ id: DB.uid(), kind: chiThuKind, name, amount, note: $('#ctNote').value.trim(), createdAt: DB.nowISO() });
+    chiThuFilter = null;
+    saveChiThu(); renderChiThu();
+    $('#ctName').value = ''; $('#ctAmount').value = ''; $('#ctNote').value = '';
+    toast('Đã thêm mục ' + (chiThuKind === 'thu' ? 'thu' : 'chi') + '.');
+  });
+  $('#chiThuList').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-chi-thu-delete]');
+    if (!btn) return;
+    const item = chiThuItems.find((x) => x.id === btn.dataset.chiThuDelete);
+    if (!item) return;
+    askConfirm('Xóa mục?', 'Xóa mục “' + item.name + '” (' + DB.formatAmount(item.amount) + ' VNĐ) không?', 'Xóa mục', '', () => {
+      chiThuItems = chiThuItems.filter((x) => x.id !== item.id);
+      saveChiThu(); renderChiThu(); toast('Đã xóa mục.');
+    });
+  });
   $('#btnExport').addEventListener('click', () => {
     const data = { app: 'cuoi-chung-minh', version: 1, exportedAt: new Date().toISOString(), groups, guests, customStatuses };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

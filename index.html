@@ -111,7 +111,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 29/10/2026 11:30</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 29/10/2026 18:28</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -127,6 +127,41 @@
       <button type="button" class="btn-secondary" id="btnDownloadTextExport">Tải file .txt</button>
       <button type="button" class="btn-secondary" id="btnCloseTextExport">Đóng</button>
     </div>
+  </div>
+</div>
+
+<!-- Chi / Thu đám cưới: mở từ Cài đặt, màu xanh Nhà trai cố định, lưu chung cho cả đám cưới -->
+<div class="overlay" id="chiThuModal" role="dialog" aria-modal="true" aria-label="Tính tổng Chi Thu đám cưới">
+  <div class="sheet">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <h2 style="margin:0">Chi / Thu đám cưới</h2>
+      <button type="button" class="text-btn" id="btnCloseChiThuTop" style="white-space:nowrap">Đóng ✕</button>
+    </div>
+    <p class="muted small" style="margin:0">Chung cho cả đám cưới, không tách Nhà trai / Nhà gái. Số liệu lưu trên máy này.</p>
+    <div class="chi-thu-stats">
+      <div class="chi-thu-stat" id="chiThuStatThu" role="button" tabindex="0"><b id="chiThuTotalThu">0 VNĐ</b><span>Tổng thu</span></div>
+      <div class="chi-thu-stat" id="chiThuStatChi" role="button" tabindex="0"><b id="chiThuTotalChi">0 VNĐ</b><span>Tổng chi</span></div>
+      <div class="chi-thu-stat" id="chiThuStatAll" role="button" tabindex="0"><b id="chiThuRemain">0 VNĐ</b><span>Còn lại (Thu - Chi)</span></div>
+    </div>
+    <p class="muted small" style="margin:6px 0 0">Bấm vào Tổng thu để chỉ xem các mục thu, bấm Tổng chi để chỉ xem các mục chi, bấm lại hoặc bấm Còn lại để xem tất cả.</p>
+    <p id="chiThuFilterNote" class="muted small" style="margin:4px 0 0;color:#2f5f7d" hidden></p>
+    <form id="chiThuForm">
+      <label for="ctName">Tên mục *</label>
+      <input type="text" id="ctName" required maxlength="80" placeholder="Ví dụ: Thuê rạp, Đặt cỗ, Tiền mừng" autocomplete="off">
+      <label for="ctAmount">Số tiền *</label>
+      <input type="text" id="ctAmount" required inputmode="decimal" placeholder="Ví dụ: 5.000.000" autocomplete="off">
+      <label>Loại</label>
+      <div class="status-row">
+        <button type="button" class="seg active" id="chiThuSegChi">Chi</button>
+        <button type="button" class="seg" id="chiThuSegThu">Thu</button>
+      </div>
+      <label for="ctNote">Ghi chú</label>
+      <textarea id="ctNote" maxlength="500" placeholder="Ví dụ: Đã đặt cọc 2 triệu, còn lại trả sau…"></textarea>
+      <div class="btn-row"><button type="submit" class="btn-primary">+ Thêm mục</button></div>
+      <p id="chiThuFormError" class="muted small" style="color:#a33333" hidden></p>
+    </form>
+    <div id="chiThuList" style="margin-top:12px"></div>
+    <div class="btn-row"><button type="button" class="btn-secondary" id="btnCloseChiThu">Đóng</button></div>
   </div>
 </div>
 
@@ -228,6 +263,7 @@
       <button type="button" id="btnExport">Xuất sao lưu (JSON)<small>Gồm cả nhà trai và nhà gái, tất cả nhóm và trạng thái.</small></button>
       <button type="button" id="btnImport">Nhập sao lưu (JSON)<small>Chọn file đã xuất trước đó. Sẽ hỏi gộp hay thay thế.</small></button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <button type="button" id="btnChiThu">Tính tổng Chi / Thu đám cưới<small>Mở tab tính tổng tiền chi / thu chuẩn bị đám cưới, có ghi chú, thêm / xóa mục.</small></button>
       <button type="button" id="btnMusic" disabled>Nhạc nền — Sắp ra mắt<small>Chưa triển khai, không tự phát nhạc.</small></button>
       <button type="button" id="btnBg" disabled>Ảnh nền — Sắp ra mắt<small>Chưa triển khai, giao diện hiện tại ưu tiên dễ đọc.</small></button>
     </div>

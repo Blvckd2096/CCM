@@ -245,3 +245,24 @@ body[data-side="gai"] .group-alt { background: #FFEAF2; }
 .stat[data-stat], .stats-top [data-stat] { cursor: pointer; }
 .stat.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
 .stats-top [data-stat].active { outline: 2px solid var(--accent); border-radius: 10px; }
+
+/* Chi / Thu đám cưới: màu xanh Nhà trai cố định, không đổi theo tab đang chọn. */
+#chiThuModal .btn-primary { background: #477FA5; }
+#chiThuModal .seg.active { background: #E8F4FC; border-color: #477FA5; color: #2f5f7d; }
+.chi-thu-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.chi-thu-stat { background: #E8F4FC; border: 1px solid #C9E4F6; border-radius: 9px; padding: 8px 2px; text-align: center; }
+.chi-thu-stat b { display: block; font-size: 14px; color: #2f5f7d; word-break: break-word; }
+.chi-thu-stat span { font-size: 11px; color: #6b6560; display: block; line-height: 1.2; }
+.chi-thu-item { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 9px; margin-bottom: 6px; }
+.chi-thu-amount-thu { color: #2f5f7d; font-weight: 800; }
+.chi-thu-amount-chi { color: #a33333; font-weight: 800; }
+.chi-thu-stat[role="button"] { cursor: pointer; }
+.chi-thu-stat.active { border-color: #477FA5; box-shadow: inset 0 0 0 1px #477FA5; }
+
+/* Chi / Thu: mở full màn hình, không còn là bảng trượt dưới nữa. */
+#chiThuModal { align-items: stretch; padding-bottom: 0; }
+#chiThuModal .sheet {
+  max-height: none; height: 100vh; height: 100dvh; max-width: 720px; width: 100%;
+  border-radius: 0; padding-top: calc(14px + env(safe-area-inset-top));
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}

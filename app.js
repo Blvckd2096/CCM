@@ -965,7 +965,7 @@
   let chiThuKind = 'chi';
   let chiThuFilter = null; // null = tất cả (ô Tổng), 'thu' = chỉ thu, 'chi' = chỉ chi, 'du-kien' = chỉ dự kiến
   function saveChiThu() { try { localStorage.setItem('cuoi_chi_thu', JSON.stringify(chiThuItems)); } catch (e) {} }
-  function chiThuKindLabel(kind) { return kind === 'thu' ? 'Thu' : kind === 'du-kien' ? 'Dự kiến' : 'Chi'; }
+  function chiThuKindLabel(kind) { return kind === 'thu' ? 'Thu' : kind === 'du-kien' ? 'Dự kiến chi' : 'Chi'; }
   function renderChiThu() {
     const thu = chiThuItems.filter((x) => x.kind === 'thu').reduce((s, x) => s + x.amount, 0);
     const chi = chiThuItems.filter((x) => x.kind === 'chi').reduce((s, x) => s + x.amount, 0);
@@ -974,8 +974,8 @@
     $('#chiThuTotalChi').textContent = DB.formatAmount(chi) + ' VNĐ';
     const duKienEl = $('#chiThuTotalDuKien'); if (duKienEl) duKienEl.textContent = DB.formatAmount(duKien) + ' VNĐ';
     const remainEl = $('#chiThuRemain');
-    remainEl.textContent = DB.formatAmount(thu - chi) + ' VNĐ';
-    remainEl.style.color = (thu - chi) < 0 ? '#a33333' : '#2f5f7d';
+    remainEl.textContent = DB.formatAmount(thu - chi - duKien) + ' VNĐ';
+    remainEl.style.color = (thu - chi - duKien) < 0 ? '#a33333' : '#2f5f7d';
     const listEl = $('#chiThuList');
     if (chiThuItems.length === 0) {
       const note0 = $('#chiThuFilterNote'); if (note0) note0.hidden = true;
@@ -1001,8 +1001,8 @@
     }
     const sorted = visible.slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
     listEl.innerHTML = sorted.map((x) => '<div class="chi-thu-item"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><b>' + esc(x.name) + '</b><div class="muted small">' + chiThuKindLabel(x.kind) + (x.note ? ' • ' + esc(x.note) : '') + '</div></div>' +
-      '<div style="text-align:right;white-space:nowrap"><div class="' + (x.kind === 'thu' ? 'chi-thu-amount-thu' : x.kind === 'du-kien' ? 'chi-thu-amount-du-kien' : 'chi-thu-amount-chi') + '">' + (x.kind === 'thu' ? '+' : x.kind === 'du-kien' ? '' : '-') + DB.formatAmount(x.amount) + ' VNĐ</div>' +
-      '<button type="button" class="text-btn" data-chi-thu-edit="' + esc(x.id) + '">Sửa</button> <button type="button" class="text-btn danger" data-chi-thu-delete="' + esc(x.id) + '">Xóa</button></div></div></div>').join('');
+      '<div style="text-align:right;white-space:nowrap"><div class="' + (x.kind === 'thu' ? 'chi-thu-amount-thu' : 'chi-thu-amount-chi') + '">' + (x.kind === 'thu' ? '+' : '-') + DB.formatAmount(x.amount) + ' VNĐ</div>' +
+      '<button type="button" class="text-btn" data-chi-thu-edit="' + esc(x.id) + '">Sửa</button>' + (x.kind === 'du-kien' ? ' <button type="button" class="text-btn" data-chi-thu-paid="' + esc(x.id) + '">Đã chi</button>' : '') + ' <button type="button" class="text-btn danger" data-chi-thu-delete="' + esc(x.id) + '">Xóa</button></div></div></div>').join('');
   }
   function updateChiThuSegments() {
     $('#chiThuSegChi').classList.toggle('active', chiThuKind === 'chi');
@@ -1081,6 +1081,16 @@
     if (editBtn) {
       const item = chiThuItems.find((x) => x.id === editBtn.dataset.chiThuEdit);
       if (item) startChiThuEdit(item);
+      return;
+    }
+    const paidBtn = e.target.closest('[data-chi-thu-paid]');
+    if (paidBtn) {
+      const item = chiThuItems.find((x) => x.id === paidBtn.dataset.chiThuPaid);
+      if (item && item.kind === 'du-kien') {
+        item.kind = 'chi';
+        if (chiThuEditingId === item.id) cancelChiThuEdit();
+        saveChiThu(); renderChiThu(); toast('Đã chuyển sang Chi.');
+      }
       return;
     }
     const btn = e.target.closest('[data-chi-thu-delete]');

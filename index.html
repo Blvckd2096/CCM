@@ -111,7 +111,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 30/10/2026 22:00</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 30/10/2026 22:17</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -142,9 +142,9 @@
       <div class="chi-thu-stat" id="chiThuStatThu" role="button" tabindex="0"><b id="chiThuTotalThu">0 VNĐ</b><span>Thu</span></div>
       <div class="chi-thu-stat" id="chiThuStatChi" role="button" tabindex="0"><b id="chiThuTotalChi">0 VNĐ</b><span>Chi</span></div>
       <div class="chi-thu-stat" id="chiThuStatAll" role="button" tabindex="0"><b id="chiThuRemain">0 VNĐ</b><span>Tổng</span></div>
-      <div class="chi-thu-stat" id="chiThuStatDuKien" role="button" tabindex="0"><b id="chiThuTotalDuKien">0 VNĐ</b><span>Dự kiến</span></div>
+      <div class="chi-thu-stat" id="chiThuStatDuKien" role="button" tabindex="0"><b id="chiThuTotalDuKien">0 VNĐ</b><span>Dự kiến chi</span></div>
     </div>
-    <p class="muted small" style="margin:6px 0 0">Bấm Thu để chỉ xem các mục thu, bấm Chi để chỉ xem các mục chi, bấm Dự kiến để chỉ xem các mục dự kiến, bấm lại hoặc bấm Tổng để xem tất cả. Ô Tổng = Thu - Chi.</p>
+    <p class="muted small" style="margin:6px 0 0">Bấm Thu để chỉ xem các mục thu, bấm Chi để chỉ xem các mục chi, bấm Dự kiến chi để chỉ xem các mục dự kiến chi, bấm lại hoặc bấm Tổng để xem tất cả. Dự kiến chi là khoản trừ tiền, đã tính vào Tổng: Tổng = Thu - Chi - Dự kiến chi.</p>
     <p id="chiThuFilterNote" class="muted small" style="margin:4px 0 0;color:#2f5f7d" hidden></p>
     <form id="chiThuForm">
       <label for="ctName">Tên mục *</label>
@@ -161,7 +161,7 @@
       <div class="status-row" style="grid-template-columns:repeat(3,1fr)">
         <button type="button" class="seg active" id="chiThuSegChi">Chi</button>
         <button type="button" class="seg" id="chiThuSegThu">Thu</button>
-        <button type="button" class="seg" id="chiThuSegDuKien">Dự kiến</button>
+        <button type="button" class="seg" id="chiThuSegDuKien">Dự kiến chi</button>
       </div>
       <label for="ctNote">Ghi chú</label>
       <textarea id="ctNote" maxlength="500" placeholder="Ví dụ: Đã đặt cọc 2 triệu, còn lại trả sau…"></textarea>

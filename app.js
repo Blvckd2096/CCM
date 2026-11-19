@@ -353,11 +353,35 @@
     lines.push('Tổng: ' + list.length + ' khách (' + invited + ' đã mời, ' + (list.length - invited) + ' chưa mời)');
     return lines.join('\n');
   }
-  function openTextExport() {
+  function buildExportTextShort(list) {
+    // Bản ngắn gọn để copy sang tạo link: chỉ tên nhóm, tên người, tổng số lượng.
+    // Xếp theo từng nhóm (đúng thứ tự nhóm trong app), trong mỗi nhóm xếp A → Z.
+    // Dòng tên nhóm kết thúc bằng ":" để trang tạo link nhận đúng nhóm.
+    const lines = [];
+    lines.push('Danh sách khách mời - ' + sideName(side));
+    const seen = new Set();
+    const pushGroup = (groupId) => {
+      if (seen.has(groupId)) return;
+      seen.add(groupId);
+      const gs = list.filter((g) => g.groupId === groupId);
+      if (gs.length === 0) return;
+      lines.push(groupName(groupId) + ':');
+      gs.forEach((g, i) => { lines.push((i + 1) + '. ' + g.name); });
+    };
+    groupsFor(side).forEach((gr) => pushGroup(gr.id));
+    list.forEach((g) => pushGroup(g.groupId));
+    lines.push('Tổng: ' + list.length + ' khách');
+    return lines.join('\n');
+  }
+  function openTextExport(mode) {
     const list = getExportGuests();
     if (list.length === 0) { toast('Không có khách nào trong danh sách đang xem.'); return; }
-    $('#textExportContent').value = buildExportText(list);
-    $('#textExportSummary').textContent = list.length + ' khách • chỉ gồm tên, nhóm và trạng thái mời, xếp A → Z.';
+    const short = mode === 'short';
+    $('#textExportContent').value = short ? buildExportTextShort(list) : buildExportText(list);
+    const titleEl = $('#textExportTitle'); if (titleEl) titleEl.textContent = short ? 'Xuất Text ngắn gọn' : 'Xuất Text danh sách đang xem';
+    $('#textExportSummary').textContent = short
+      ? list.length + ' khách • chỉ gồm tên nhóm, tên người và tổng số lượng, xếp theo nhóm, A → Z trong mỗi nhóm.'
+      : list.length + ' khách • chỉ gồm tên, nhóm và trạng thái mời, xếp A → Z.';
     openOverlay('#textExportModal');
     setTimeout(() => { const ta = $('#textExportContent'); ta.focus(); ta.select(); }, 60);
   }
@@ -813,9 +837,11 @@
     const gl = $('#guestList'); if (gl) gl.hidden = false;
     renderAll(); saveView();
   });
-  $('#btnExportText').addEventListener('click', openTextExport);
+  $('#btnExportText').addEventListener('click', () => openTextExport('full'));
+  const btnExportTextShort = $('#btnExportTextShort');
+  if (btnExportTextShort) btnExportTextShort.addEventListener('click', () => openTextExport('short'));
   const btnExportStat = $('#btnExportTextStat');
-  if (btnExportStat) btnExportStat.addEventListener('click', openTextExport);
+  if (btnExportStat) btnExportStat.addEventListener('click', () => openTextExport('full'));
   $('#btnCloseTextExport').addEventListener('click', closeAll);
   $('#btnCopyTextExport').addEventListener('click', () => {
     const ta = $('#textExportContent');

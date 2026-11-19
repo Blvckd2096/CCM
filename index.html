@@ -97,6 +97,7 @@
       <button class="chip" type="button" id="btnAddGroup">+ Thêm mục mới</button>
     </div>
     <button type="button" class="btn-secondary" id="btnExportText" style="width:100%;min-height:38px">Xuất Text danh sách đang xem<small style="display:block;font-weight:400;font-size:12px;color:var(--muted)">Chỉ xuất danh sách đang lọc / đang xem, gồm tên • nhóm • trạng thái mời.</small></button>
+    <button type="button" class="btn-secondary" id="btnExportTextShort" style="width:100%;min-height:38px;margin-top:6px">Xuất Text ngắn gọn<small style="display:block;font-weight:400;font-size:12px;color:var(--muted)">Chỉ gồm tên nhóm • tên người • tổng số lượng, để copy sang tạo link.</small></button>
     <p class="muted small" style="margin:0">Chạm 1 lần vào nút trạng thái để đổi. Chạm tên khách để sửa đầy đủ. Chạm “Chi tiết” để nhập nhanh tiền và ghi chú.</p>
   </section>
 
@@ -111,7 +112,7 @@
     <b>Chưa có khách mời nào</b>
     <span>Bấm “+ Thêm khách” để thêm khách đầu tiên cho bên này.</span>
   </div>
-  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 30/10/2026 22:17</footer>
+  <footer class="update-stamp" id="updateStamp">Cưới chúng mình • Cập nhật 19/11/2026 20:29</footer>
 </main>
 
 <div class="fab"><button type="button" id="btnAddGuest">+ Thêm khách</button></div>
@@ -119,7 +120,7 @@
 <!-- Xuất Text -->
 <div class="overlay" id="textExportModal" role="dialog" aria-modal="true" aria-label="Xuất danh sách dạng Text">
   <div class="sheet">
-    <h2>Xuất Text danh sách đang xem</h2>
+    <h2 id="textExportTitle">Xuất Text danh sách đang xem</h2>
     <p id="textExportSummary" class="muted small"></p>
     <textarea id="textExportContent" readonly rows="14" style="width:100%;min-height:260px;border:1px solid var(--border);border-radius:11px;padding:10px;font-size:14px;line-height:1.5;white-space:pre-wrap"></textarea>
     <div class="btn-row" style="flex-direction:column">

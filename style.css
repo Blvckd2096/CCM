@@ -162,8 +162,9 @@ body[data-side="gai"] .group-alt { background: #FFEAF2; }
 .empty b { color: var(--ink); display: block; font-size: 15px; margin-bottom: 4px; }
 
 .fab {
-  position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom));
+  position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom) + var(--kb-height, 0px));
   max-width: 696px; margin: 0 auto; z-index: 20;
+  transition: bottom .18s ease-out;
 }
 /* Nút Thêm khách GIỮ NGUYÊN theo yêu cầu: không giảm. */
 .fab button {
@@ -176,11 +177,12 @@ body[data-side="gai"] .group-alt { background: #FFEAF2; }
 .overlay {
   position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.45);
   display: none; align-items: flex-end; justify-content: center;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--kb-height, 0px));
+  transition: padding-bottom .18s ease-out;
 }
 .overlay.open { display: flex; }
 .sheet {
-  background: #fff; width: 100%; max-width: 720px; max-height: 88vh; overflow-y: auto;
+  background: #fff; width: 100%; max-width: 720px; max-height: calc(88vh - var(--kb-height, 0px)); overflow-y: auto;
   border-radius: 20px 20px 0 0; padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
 }
 .sheet h2 { margin: 0 0 8px; font-size: 18px; }

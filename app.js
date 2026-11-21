@@ -383,7 +383,6 @@
       ? list.length + ' khách • chỉ gồm tên nhóm, tên người và tổng số lượng, xếp theo nhóm, A → Z trong mỗi nhóm.'
       : list.length + ' khách • chỉ gồm tên, nhóm và trạng thái mời, xếp A → Z.';
     openOverlay('#textExportModal');
-    setTimeout(() => { const ta = $('#textExportContent'); ta.focus(); ta.select(); }, 60);
   }
   function renderStatDetail() {
     const panel = $('#statDetail');
@@ -845,14 +844,34 @@
   $('#btnCloseTextExport').addEventListener('click', closeAll);
   $('#btnCopyTextExport').addEventListener('click', () => {
     const ta = $('#textExportContent');
-    ta.focus(); ta.select();
     const done = () => toast('Đã sao chép danh sách.');
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(ta.value).then(done).catch(() => { try { document.execCommand('copy'); done(); } catch (e) { toast('Không sao chép được, hãy chọn và sao chép thủ công.'); } });
-    } else {
+    // Đường dự phòng cũ cần chọn ô text mới copy được; ô text đã 16px
+    // nên iOS không tự zoom khi focus để chọn, xong thì blur ngay.
+    const fallback = () => {
+      ta.focus(); ta.select();
       try { document.execCommand('copy'); done(); } catch (e) { toast('Không sao chép được, hãy chọn và sao chép thủ công.'); }
+      ta.blur();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(done).catch(fallback);
+    } else {
+      fallback();
     }
   });
+  // Nâng nút "+ Thêm khách" (và các sheet) lên trên bàn phím: iOS không tự
+  // thu layout khi mở bàn phím nên nút fixed ở đáy sẽ bị che. Đo chiều cao
+  // bàn phím qua visualViewport rồi đẩy bằng biến --kb-height.
+  function updateKbHeight(){
+    if (!window.visualViewport) return;
+    var vv = window.visualViewport;
+    var kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    document.documentElement.style.setProperty('--kb-height', kb + 'px');
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateKbHeight);
+    window.visualViewport.addEventListener('scroll', updateKbHeight);
+    updateKbHeight();
+  }
   $('#btnDownloadTextExport').addEventListener('click', () => {
     const blob = new Blob([$('#textExportContent').value], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
